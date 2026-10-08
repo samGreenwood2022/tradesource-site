@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TradeSource</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <a href="/en/gb" class="logo" data-cy="logoHome">TradeSource</a>
+
+    <form class="search-form search-form--desktop" data-cy="searchFormDesktop">
+      <input
+        type="text"
+        class="search-field"
+        data-cy="searchFieldSearch"
+        placeholder="Search products or manufacturers"
+        aria-label="Search products or manufacturers"
+      />
+    </form>
+
+    <button class="nav-toggle" data-cy="navToggle" aria-label="Menu">&#9776;</button>
+
+    <form class="search-form search-form--mobile" data-cy="searchFormMobile" hidden>
+      <input
+        type="text"
+        class="search-field"
+        data-cy="searchFieldSearch"
+        placeholder="Search products or manufacturers"
+        aria-label="Search products or manufacturers"
+      />
+    </form>
+  </header>
+
+  <main id="app"></main>
+
+  <footer class="site-footer">
+    <p>TradeSource is a fictional site built for automation-testing practice. Not a real company.</p>
+  </footer>
+
+  <script src="/data.js"></script>
+  <script src="/app.js"></script>
+</body>
+</html>

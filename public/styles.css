@@ -467,3 +467,20 @@ img.tile-logo { display: block; border-radius: 12px; background: none; object-fi
   .search-form--desktop { display: none; }
   .nav-toggle { display: block; }
 }
+
+/* Contact manufacturer modal */
+.contact-dialog { top: 15%; left: 50%; transform: translateX(-50%); width: min(480px, calc(100% - 2rem)); }
+.contact-dialog h2 { margin-top: 0; }
+.contact-dialog .field { margin-bottom: 0.9rem; }
+.contact-dialog label { display: block; font-weight: 600; margin-bottom: 0.25rem; }
+.contact-dialog input, .contact-dialog textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid #94a3a0;
+  border-radius: 4px;
+  font: inherit;
+}
+.contact-dialog [aria-invalid="true"] { border-color: #b91c1c; }
+.contact-note { color: #4b5563; font-size: 0.9rem; }
+.overlay-actions button:disabled { opacity: 0.6; cursor: default; }

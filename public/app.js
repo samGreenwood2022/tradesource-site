@@ -507,12 +507,158 @@
       </section>
     `;
 
+    const contactButton = app.querySelector('#contact-manufacturer');
+    if (contactButton) contactButton.addEventListener('click', () => openContactModal(m, contactButton));
+
     const token = renderToken;
     const certSlot = app.querySelector('[data-slot="certification-bodies"]');
     if (certSlot) loadCertificationBodies(certSlot, m, token);
     const listSlot = app.querySelector('[data-slot="list"]');
     if (listSlot) loadList(listSlot, LIST_TABS[current.key], m, token);
   }
+
+  // ---------------------------------------------------------------
+  // "Contact manufacturer" modal
+  //   signed out -> "Sign in required" dialog
+  //   signed in  -> subject + question form -> fake send -> confirmation
+  // ---------------------------------------------------------------
+
+  let contactModal = null;
+
+  function closeContactModal() {
+    if (!contactModal) return;
+    document.removeEventListener('keydown', contactModal.onKey);
+    contactModal.dialog.remove();
+    contactModal.backdrop.remove();
+    const opener = contactModal.opener;
+    contactModal = null;
+    if (opener && document.contains(opener)) opener.focus();
+  }
+
+  function openContactModal(m, opener) {
+    closeContactModal();
+    const backdrop = document.createElement('div');
+    backdrop.className = 'cdk-overlay-backdrop cdk-overlay-backdrop-showing';
+    const dialog = document.createElement('div');
+    dialog.className = 'overlay-dialog contact-dialog';
+    dialog.setAttribute('role', 'dialog');
+    dialog.setAttribute('aria-modal', 'true');
+    dialog.setAttribute('data-cy', 'contactDialog');
+    dialog.setAttribute('data-testid', 'contact-dialog');
+    document.body.appendChild(backdrop);
+    document.body.appendChild(dialog);
+
+    // Escape closes; Tab stays inside the dialog.
+    const onKey = (e) => {
+      if (e.key === 'Escape') { closeContactModal(); return; }
+      if (e.key !== 'Tab') return;
+      const focusable = dialog.querySelectorAll('button:not([disabled]), input, textarea');
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    };
+    document.addEventListener('keydown', onKey);
+    contactModal = { dialog, backdrop, onKey, opener };
+
+    const closeX = '<button type="button" class="dialog-close" data-cy="contactClose" data-testid="contact-close" aria-label="Close dialog">&times;</button>';
+    const wireClose = () => dialog.querySelectorAll('[data-close]').forEach((b) => b.addEventListener('click', closeContactModal));
+
+    const session = getSession();
+    if (!session) {
+      dialog.setAttribute('aria-labelledby', 'contact-title');
+      dialog.innerHTML = `
+        ${closeX.replace('class="dialog-close"', 'class="dialog-close" data-close')}
+        <h2 id="contact-title">Sign in required</h2>
+        <p data-testid="contact-signin-message">To contact a manufacturer you need to be signed in.</p>
+        <div class="overlay-actions">
+          <button type="button" id="contact-signin" data-cy="contactSignIn" data-testid="contact-signin">Sign in to continue</button>
+          <button type="button" class="secondary" id="contact-cancel" data-cy="contactCancel" data-testid="contact-cancel" data-close>Cancel</button>
+        </div>`;
+      wireClose();
+      dialog.querySelector('#contact-signin').addEventListener('click', () => {
+        const returnUrl = window.location.pathname + window.location.search;
+        closeContactModal();
+        navigate(SIGN_IN_PATH + '?returnUrl=' + encodeURIComponent(returnUrl));
+      });
+      dialog.querySelector('#contact-signin').focus();
+      return;
+    }
+
+    dialog.setAttribute('aria-labelledby', 'contact-title');
+    dialog.innerHTML = `
+      ${closeX.replace('class="dialog-close"', 'class="dialog-close" data-close')}
+      <h2 id="contact-title">Contact ${escapeHtml(m.name)}</h2>
+      <form id="contact-form" data-cy="contactForm" data-testid="contact-form" novalidate>
+        <div class="field">
+          <label for="contact-subject">Subject</label>
+          <input id="contact-subject" name="subject" type="text" maxlength="100" required data-cy="contactSubject" data-testid="contact-subject" />
+          <p class="form-error" id="contact-subject-error" data-testid="contact-subject-error" role="alert" hidden></p>
+        </div>
+        <div class="field">
+          <label for="contact-question">Question</label>
+          <textarea id="contact-question" name="question" rows="5" maxlength="1000" required data-cy="contactQuestion" data-testid="contact-question"></textarea>
+          <p class="form-error" id="contact-question-error" data-testid="contact-question-error" role="alert" hidden></p>
+        </div>
+        <p class="form-error" id="contact-form-error" data-testid="contact-form-error" role="alert" hidden></p>
+        <div class="overlay-actions">
+          <button type="submit" id="contact-send" data-cy="contactSend" data-testid="contact-send">Send message</button>
+          <button type="button" class="secondary" id="contact-cancel" data-cy="contactCancel" data-testid="contact-cancel" data-close>Cancel</button>
+        </div>
+      </form>`;
+    wireClose();
+    const form = dialog.querySelector('#contact-form');
+    const subjectEl = form.querySelector('#contact-subject');
+    const questionEl = form.querySelector('#contact-question');
+    const showError = (id, input, text) => {
+      const el = form.querySelector('#' + id);
+      el.textContent = text || '';
+      el.hidden = !text;
+      if (input) input.setAttribute('aria-invalid', text ? 'true' : 'false');
+    };
+    subjectEl.focus();
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const subject = subjectEl.value.trim();
+      const question = questionEl.value.trim();
+      showError('contact-subject-error', subjectEl, subject ? '' : 'Enter a subject');
+      showError('contact-question-error', questionEl, question ? '' : 'Enter your question');
+      showError('contact-form-error', null, '');
+      if (!subject || !question) return;
+
+      const send = form.querySelector('#contact-send');
+      send.disabled = true;
+      send.textContent = 'Sending...';
+      try {
+        const res = await fetch('/api/contact-manufacturer', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ manufacturerId: m.id, subject, question, from: session.email }),
+        });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const { reference } = await res.json();
+        if (!contactModal || contactModal.dialog !== dialog) return;
+        dialog.innerHTML = `
+          ${closeX.replace('class="dialog-close"', 'class="dialog-close" data-close')}
+          <h2 id="contact-title">Message sent</h2>
+          <p data-testid="contact-success">Your message to ${escapeHtml(m.name)} has been sent. Reference: <strong data-testid="contact-reference">${escapeHtml(reference)}</strong></p>
+          <p class="contact-note">This is a practice site: nothing was actually sent.</p>
+          <div class="overlay-actions">
+            <button type="button" id="contact-done" data-cy="contactDone" data-testid="contact-done" data-close>Close</button>
+          </div>`;
+        wireClose();
+        dialog.querySelector('#contact-done').focus();
+      } catch (err) {
+        if (!contactModal || contactModal.dialog !== dialog) return;
+        send.disabled = false;
+        send.textContent = 'Send message';
+        showError('contact-form-error', null, 'Sorry, we could not send your message. Please try again.');
+      }
+    });
+  }
+
 
   // ---------------------------------------------------------------
   // Session (demo only: stored in localStorage, no real auth)
@@ -737,6 +883,7 @@
   function render(pathname, search) {
     renderToken += 1;
     closeAutocomplete();
+    closeContactModal();
     // The Browse menu closes when you navigate.
     const browseMenu = document.querySelector('[data-cy="browseMenu"]');
     if (browseMenu) {

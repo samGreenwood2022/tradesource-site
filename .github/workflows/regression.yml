@@ -1,0 +1,81 @@
+name: Site regression tests
+
+# Runs the POM regression spec from the TradeSource-Cypress repo against the code in each pull request.
+# To block merging when it fails: add "Site regression tests / regression" as a required status check
+# in the branch protection rule (or ruleset) for master.
+on:
+  pull_request:
+    branches: [master]
+  workflow_dispatch: # Lets you run it manually from the Actions tab
+
+# A new push to the same PR cancels the run that is still going
+concurrency:
+  group: regression-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    steps:
+      # 1. The site code being tested (the PR's code)
+      - name: Check out site
+        uses: actions/checkout@v4
+        with:
+          path: site
+
+      # 2. The Cypress tests. Change ref to a tag or commit to pin the test version,
+      # so changes to the tests repo can't suddenly break unrelated site PRs
+      - name: Check out Cypress tests
+        uses: actions/checkout@v4
+        with:
+          repository: samGreenwood2022/TradeSource-Cypress
+          ref: master
+          path: tests
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: tests/package-lock.json
+
+      # 3. Install the tests, start the site from this PR, wait for it, run only the POM spec
+      - name: Run Cypress
+        uses: cypress-io/github-action@v6
+        with:
+          working-directory: tests
+          start: npm start --prefix ${{ github.workspace }}/site
+          wait-on: 'http://localhost:4321'
+          spec: cypress/e2e/regression-tests-pom.cy.ts
+          # Only send results to Cypress Cloud when the key is available (it is not for PRs from forks)
+          record: ${{ secrets.CYPRESS_RECORD_KEY != '' }}
+        env:
+          CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
+          # Fictional test sign-in, published in this repo's docs, so no secrets are needed
+          EMAIL: test.user@tradesource.example
+          PASSWORD: Password123!
+
+      # 4. Always upload the report, even when tests fail (failure screenshots are embedded in it)
+      - name: Upload HTML report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cypress-report
+          path: tests/cypress/reports/html/
+          if-no-files-found: warn
+          retention-days: 14
+
+      # 5. Screenshots and visual diff images, for investigating visual failures
+      - name: Upload screenshots and visual diffs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cypress-screenshots
+          path: |
+            tests/cypress/screenshots/
+            tests/cypress/visual/diff/
+          if-no-files-found: ignore
+          retention-days: 14

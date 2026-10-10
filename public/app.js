@@ -180,6 +180,173 @@
   }
 
   // ---------------------------------------------------------------
+  // Session (demo only: stored in localStorage, no real auth)
+  // ---------------------------------------------------------------
+
+  const SESSION_KEY = 'tradesource.session';
+  const SIGN_IN_PATH = '/en/gb/signin';
+
+  function getSession() {
+    try {
+      return JSON.parse(window.localStorage.getItem(SESSION_KEY));
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function setSession(user) {
+    try {
+      window.localStorage.setItem(
+        SESSION_KEY,
+        JSON.stringify({ email: user.email, firstName: user.firstName, lastName: user.lastName }),
+      );
+    } catch (e) { /* storage unavailable: stay signed out */ }
+  }
+
+  function clearSession() {
+    try { window.localStorage.removeItem(SESSION_KEY); } catch (e) { /* ignore */ }
+  }
+
+  // Only allow same-site relative paths, so ?returnUrl= can't redirect elsewhere.
+  function safeReturnUrl(value) {
+    if (typeof value === 'string' && value.startsWith('/') && !value.startsWith('//') && !value.includes('\\')) {
+      return value;
+    }
+    return '/en/gb';
+  }
+
+  function renderAuth() {
+    const slot = document.querySelector('[data-cy="headerAuth"]');
+    const session = getSession();
+
+    if (!session) {
+      slot.innerHTML = '<a href="' + SIGN_IN_PATH + '" class="sign-in-button" data-cy="signInButton">Sign in</a>';
+      slot.querySelector('a').addEventListener('click', (e) => {
+        e.preventDefault();
+        // Remember where the user was so we can send them back after sign-in.
+        const onSignIn = window.location.pathname === SIGN_IN_PATH;
+        const from = onSignIn
+          ? safeReturnUrl(new URLSearchParams(window.location.search).get('returnUrl'))
+          : window.location.pathname + window.location.search;
+        navigate(SIGN_IN_PATH + '?returnUrl=' + encodeURIComponent(from));
+      });
+      return;
+    }
+
+    const initials = ((session.firstName || '')[0] || '') + ((session.lastName || '')[0] || '');
+    slot.innerHTML = `
+      <button type="button" class="avatar" data-cy="userAvatar" aria-haspopup="true" aria-expanded="false"
+        title="${escapeHtml(session.firstName + ' ' + session.lastName)}">${escapeHtml(initials.toUpperCase())}</button>
+      <div class="avatar-menu" data-cy="userMenu" hidden>
+        <p class="avatar-menu-email" data-cy="userEmail">${escapeHtml(session.email)}</p>
+        <button type="button" data-cy="signOutButton">Sign out</button>
+      </div>
+    `;
+    const avatar = slot.querySelector('[data-cy="userAvatar"]');
+    const menu = slot.querySelector('[data-cy="userMenu"]');
+    avatar.addEventListener('click', () => {
+      menu.hidden = !menu.hidden;
+      avatar.setAttribute('aria-expanded', String(!menu.hidden));
+    });
+    slot.querySelector('[data-cy="signOutButton"]').addEventListener('click', () => {
+      clearSession();
+      renderAuth();
+      // Stay on the current page, unless it is one that needs the user's session.
+      render(window.location.pathname, window.location.search);
+    });
+  }
+
+  function renderSignIn(search) {
+    const params = new URLSearchParams(search);
+    const returnUrl = safeReturnUrl(params.get('returnUrl'));
+
+    // Already signed in: nothing to do here.
+    if (getSession()) {
+      window.history.replaceState({}, '', returnUrl);
+      render(window.location.pathname, window.location.search);
+      return;
+    }
+
+    let email = '';
+
+    function showEmailStep() {
+      app.innerHTML = `
+        <section class="sign-in" data-cy="signInPage">
+          <h1>Sign in</h1>
+          <form class="sign-in-form" data-cy="signInEmailForm" novalidate>
+            <label for="signInEmail">Email address</label>
+            <input type="email" id="signInEmail" name="email" data-cy="signInEmail" autocomplete="username" value="${escapeHtml(email)}" />
+            <p class="form-error" data-cy="signInError" role="alert" hidden></p>
+            <button type="submit" class="primary-button" data-cy="signInNext">Next</button>
+          </form>
+        </section>
+      `;
+      const form = app.querySelector('form');
+      const error = app.querySelector('[data-cy="signInError"]');
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const value = form.querySelector('input').value.trim();
+        if (!value) {
+          error.textContent = 'Enter your email address.';
+          error.hidden = false;
+          return;
+        }
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+          error.textContent = 'Enter a valid email address.';
+          error.hidden = false;
+          return;
+        }
+        email = value;
+        showPasswordStep();
+      });
+    }
+
+    function showPasswordStep() {
+      app.innerHTML = `
+        <section class="sign-in" data-cy="signInPage">
+          <h1>Enter your password</h1>
+          <p class="sign-in-email" data-cy="signInEmailDisplay">${escapeHtml(email)}</p>
+          <form class="sign-in-form" data-cy="signInPasswordForm" novalidate>
+            <label for="signInPassword">Password</label>
+            <input type="password" id="signInPassword" name="password" data-cy="signInPassword" autocomplete="current-password" />
+            <p class="form-error" data-cy="signInError" role="alert" hidden></p>
+            <button type="submit" class="primary-button" data-cy="signInSubmit">Sign in</button>
+            <button type="button" class="link-button" data-cy="signInBack">Use a different email</button>
+          </form>
+        </section>
+      `;
+      const form = app.querySelector('form');
+      const error = app.querySelector('[data-cy="signInError"]');
+      form.querySelector('[data-cy="signInBack"]').addEventListener('click', showEmailStep);
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const password = form.querySelector('input').value;
+        if (!password) {
+          error.textContent = 'Enter your password.';
+          error.hidden = false;
+          return;
+        }
+        const user = DATA.users.find(
+          (u) => u.email.toLowerCase() === email.toLowerCase() && u.password === password,
+        );
+        if (!user) {
+          // Same message whether the email or the password was wrong.
+          error.textContent = 'Incorrect email address or password.';
+          error.hidden = false;
+          return;
+        }
+        setSession(user);
+        renderAuth();
+        // Replace the sign-in entry so Back doesn't return to the sign-in form.
+        window.history.replaceState({}, '', returnUrl);
+        render(window.location.pathname, window.location.search);
+      });
+    }
+
+    showEmailStep();
+  }
+
+  // ---------------------------------------------------------------
   // Router
   // ---------------------------------------------------------------
 
@@ -191,6 +358,10 @@
     if (pathname === '/en/gb/search') {
       const params = new URLSearchParams(search);
       renderSearch(params.get('q'));
+      return;
+    }
+    if (pathname === SIGN_IN_PATH) {
+      renderSignIn(search);
       return;
     }
     const manufacturerMatch = pathname.match(/^\/manufacturer\/([^/]+)\/[^/]+\/overview$/);
@@ -231,6 +402,8 @@
   // ---------------------------------------------------------------
   // Initial load
   // ---------------------------------------------------------------
+
+  renderAuth();
 
   if (window.location.pathname === '/') {
     window.history.replaceState({}, '', '/en/gb');

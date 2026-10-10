@@ -38,6 +38,39 @@ Three fictional manufacturers are seeded in `public/data.js`: **Vortix**
 existing course material), **Ferroline** (fixings), and **Brightcore**
 (lighting). Add more there if you want extra search/filter scenarios.
 
+## Sign-in (demo)
+
+A "Sign in" button sits top-right in the header on every page. It takes the
+user to `/en/gb/signin?returnUrl=<page they came from>`:
+
+1. **Email step** – enter an email, click **Next** (empty / badly formatted emails show an error).
+2. **Password step** – enter a password, click **Sign in**. Wrong credentials show
+   "Incorrect email address or password." Success returns the user to the page they
+   started from, and the button is replaced by an avatar (initials).
+
+The avatar opens a small menu with the user's email and a **Sign out** button.
+
+Demo account (fictional, visible in `public/data.js`):
+
+| Email                             | Password       |
+|-----------------------------------|----------------|
+| `test.user@tradesource.example`   | `Password123!` |
+
+The session lives in `localStorage` under `tradesource.session`, so Cypress's
+default per-test clearing signs the user out between tests. This is not real
+authentication.
+
+| Element                | Selector                         |
+|------------------------|----------------------------------|
+| Header sign-in button  | `[data-cy="signInButton"]`       |
+| Email field / Next     | `[data-cy="signInEmail"]` / `[data-cy="signInNext"]` |
+| Password field / Submit| `[data-cy="signInPassword"]` / `[data-cy="signInSubmit"]` |
+| Error message          | `[data-cy="signInError"]`        |
+| Email shown on step 2  | `[data-cy="signInEmailDisplay"]` |
+| Back to email step     | `[data-cy="signInBack"]`         |
+| Avatar / menu          | `[data-cy="userAvatar"]` / `[data-cy="userMenu"]` |
+| Sign out               | `[data-cy="signOutButton"]`      |
+
 ## Mapping from the old NBS Source course content
 
 | Old (NBS Source)                                              | New (TradeSource)                                      |

@@ -161,6 +161,94 @@ body {
   font-size: 0.85rem;
 }
 
+/* Header auth: sign-in button / avatar */
+.header-auth {
+  position: relative;
+  margin-left: auto;
+}
+
+.sign-in-button {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  border: 1px solid #fff;
+  border-radius: 4px;
+  color: #fff;
+  text-decoration: none;
+  font-size: 0.95rem;
+}
+
+.sign-in-button:hover { background: rgba(255, 255, 255, 0.15); }
+
+.avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  background: #7c3aed;
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.avatar-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 0.5rem);
+  z-index: 10;
+  min-width: 220px;
+  padding: 0.75rem;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.avatar-menu[hidden] { display: none; }
+.avatar-menu-email { margin: 0 0 0.75rem; font-size: 0.85rem; color: #444; word-break: break-all; }
+.avatar-menu button {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #0b3d2e;
+  border-radius: 4px;
+  background: #fff;
+  color: #0b3d2e;
+  cursor: pointer;
+}
+
+/* Sign-in page */
+.sign-in { max-width: 380px; margin: 1rem auto; }
+.sign-in-email { color: #444; margin-top: -0.5rem; }
+.sign-in-form { display: flex; flex-direction: column; gap: 0.5rem; }
+.sign-in-form label { font-weight: 600; }
+.sign-in-form input {
+  padding: 0.6rem 0.75rem;
+  border: 1px solid #bbb;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+.form-error { margin: 0; color: #b91c1c; font-size: 0.9rem; }
+.form-error[hidden] { display: none; }
+.primary-button {
+  margin-top: 0.5rem;
+  padding: 0.7rem 1rem;
+  border: none;
+  border-radius: 4px;
+  background: #0b3d2e;
+  color: #fff;
+  font-size: 1rem;
+  cursor: pointer;
+}
+.link-button {
+  background: none;
+  border: none;
+  color: #0b3d2e;
+  text-decoration: underline;
+  cursor: pointer;
+  font-size: 0.9rem;
+  padding: 0.25rem;
+}
+
 @media (max-width: 640px) {
   .search-form--desktop { display: none; }
   .nav-toggle { display: block; }

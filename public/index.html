@@ -4,11 +4,12 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>TradeSource</title>
+  <link rel="icon" href="/images/favicon.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="/styles.css" />
 </head>
 <body>
   <header class="site-header">
-    <a href="/en/gb" class="logo" id="site-logo" data-cy="logoHome" data-testid="logo-home" title="TradeSource home">TradeSource</a>
+    <a href="/en/gb" data-spa class="logo" id="site-logo" data-cy="logoHome" data-testid="logo-home" title="TradeSource home"><img src="/images/favicon.svg" alt="" width="28" height="28" />TradeSource</a>
 
     <button type="button" class="locale-button" id="locale-button" data-cy="localeButton" data-testid="locale-button" aria-label="Choose location and language"><span>UK</span></button>
 
@@ -45,6 +46,16 @@
     </form>
   </header>
 
+  <div class="main-nav-bar">
+    <nav class="main-nav" aria-label="Main navigation links" data-cy="mainNav">
+      <a href="/en/gb" data-spa data-cy="mainNavHome">Home</a>
+      <div class="browse">
+        <button type="button" id="browse-button" data-cy="browseButton" aria-expanded="false" aria-controls="browse-menu">Browse</button>
+        <menu id="browse-menu" class="browse-menu" role="menu" aria-label="Browse menu" data-cy="browseMenu" hidden></menu>
+      </div>
+    </nav>
+  </div>
+
   <main id="app"></main>
 
   <footer class="site-footer">
@@ -52,6 +63,8 @@
   </footer>
 
   <script src="/data.js"></script>
+  <script src="/util.js"></script>
   <script src="/app.js"></script>
+  <script src="/overlays.js"></script>
 </body>
 </html>

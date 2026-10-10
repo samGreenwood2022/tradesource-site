@@ -4,6 +4,7 @@
   "description": "Fictional trade-products directory site, built as a Cypress/Playwright automation practice target for The QA Workshop's training course.",
   "private": true,
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "images": "node scripts/generate-images.js"
   }
 }

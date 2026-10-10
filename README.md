@@ -77,6 +77,7 @@ authentication.
 - **Header (every page):** logo, "Choose location and language" (UK), search box (desktop + hidden mobile copy) with autocomplete suggestions, search button, **Sign in** button (or avatar when signed in), plus a **Browse** menu of categories.
 - **Search** `/en/gb/search?q=<term>`: tabs for Products, Manufacturers, CPD, Literature and Case studies.
 - **Manufacturer pages** `/en/gb/manufacturer/<slug>/<id>/<section>`: tab strip, telephone and website links, "Contact manufacturer", async "Certification bodies", and tabs backed by the fictional API. Four manufacturers: Vortix, Ferroline, Brightcore and Halden Locks UK (which has a **CPD** tab instead of Certifications).
+- **Contact manufacturer** (button on every manufacturer page): signed out, it opens a modal "Sign in required" dialog (`Sign in to continue` returns you to the same manufacturer page after sign-in); signed in, it opens a "Contact <name>" form with **Subject** and **Question** (both required, inline `role="alert"` errors), posts to the fake `POST /api/contact-manufacturer` and shows "Message sent" with a `MSG-XXXXXX` reference. Nothing is stored or sent. Escape, Cancel and the close button dismiss it.
 - **Products** `/en/gb/product/<slug>/<id>/<listingId>` with a seven-link breadcrumb trail and a specification table.
 - **Categories** `/en/gb/categories`, `/en/gb/categories/catalogue` and `/en/gb/category/catalogue/.../<id>`.
 - **Sign in** `/en/gb/signin`, described above.

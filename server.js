@@ -97,6 +97,31 @@ function handleApi(req, res) {
   });
 }
 
+// POST /api/contact-manufacturer: a fake "send message" endpoint. Nothing is
+// stored or sent anywhere; it validates the payload and returns a reference.
+function handleContact(req, res) {
+  let body = '';
+  req.on('data', (chunk) => {
+    body += chunk;
+    if (body.length > 1e5) req.destroy();
+  });
+  req.on('end', () => {
+    const send = (status, payload) => setTimeout(() => {
+      res.writeHead(status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+      res.end(JSON.stringify(payload));
+    }, API_DELAY_MS);
+    let msg;
+    try { msg = JSON.parse(body || 'null'); } catch (e) { return send(400, { error: 'Invalid JSON' }); }
+    const subject = msg && typeof msg.subject === 'string' ? msg.subject.trim() : '';
+    const question = msg && typeof msg.question === 'string' ? msg.question.trim() : '';
+    if (!subject || !question || !msg.manufacturerId) {
+      return send(422, { error: 'Subject, question and manufacturerId are required' });
+    }
+    const reference = 'MSG-' + Math.random().toString(36).slice(2, 8).toUpperCase();
+    return send(201, { reference });
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Static files
 // ---------------------------------------------------------------------------
@@ -111,6 +136,16 @@ const server = http.createServer((req, res) => {
       return;
     }
     handleApi(req, res);
+    return;
+  }
+
+  if (urlPath === '/api/contact-manufacturer') {
+    if (req.method !== 'POST') {
+      res.writeHead(405, { Allow: 'POST' });
+      res.end('Method not allowed');
+      return;
+    }
+    handleContact(req, res);
     return;
   }
 

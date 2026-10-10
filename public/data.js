@@ -3,6 +3,16 @@
 // invented for this course — none of it is copied from any real company.
 
 window.TRADESOURCE_DATA = {
+  // Demo accounts for the sign-in journey. Fictional, and deliberately
+  // visible in the page source: this is a practice site, not real auth.
+  users: [
+    {
+      email: 'test.user@tradesource.example',
+      password: 'Password123!',
+      firstName: 'Test',
+      lastName: 'User',
+    },
+  ],
   manufacturers: [
     {
       slug: 'vortix',

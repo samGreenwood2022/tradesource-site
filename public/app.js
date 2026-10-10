@@ -444,6 +444,15 @@
     ];
   }
 
+  // Fake social links: the glyphs are generic originals and the URLs are
+  // example.com placeholders, so nothing points at a real account.
+  const SOCIAL_PLATFORMS = [
+    { key: 'linkedin', label: 'LinkedIn' },
+    { key: 'facebook', label: 'Facebook' },
+    { key: 'youtube', label: 'YouTube' },
+    { key: 'instagram', label: 'Instagram' },
+  ];
+
   function renderManufacturer(slug, sectionKey) {
     const m = findManufacturer(slug);
     if (!m) {
@@ -500,6 +509,11 @@
           > Website </a>
           <button class="contact-button" id="contact-manufacturer" data-testid="contact-manufacturer" type="button"> Contact manufacturer </button>
         </div>
+
+        <ul class="social-links" data-cy="socialLinks" data-testid="social-links" aria-label="${escapeHtml(m.name)} on social media">
+          ${SOCIAL_PLATFORMS.map((pl) => `
+          <li><a class="social-link" href="https://example.com/social/${m.slug}/${pl.key}" target="_blank" rel="noopener noreferrer" aria-label="${escapeHtml(m.name)} on ${pl.label}" title="${pl.label}" data-cy="social-${pl.key}" data-testid="social-${pl.key}"><img src="/images/social-${pl.key}.svg" alt="" width="32" height="32" /></a></li>`).join('')}
+        </ul>
 
         ${nav}
 

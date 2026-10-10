@@ -132,6 +132,26 @@ write('hero.svg', `${svgOpen(1200, 320, 'role="img" preserveAspectRatio="xMidYMi
   ${towers.map(([x, fullH, w], i) => { const h = Math.round(fullH * 0.6); return `<rect x="${x}" y="${320 - h}" width="${w}" height="${h}" fill="${i % 2 ? '#0a2e23' : '#0f4f3b'}"/>${Array.from({ length: Math.floor(h / 24) }, (_, r) => `<rect x="${x + 10}" y="${320 - h + 10 + r * 24}" width="${w - 20}" height="8" fill="#ffe9a8" opacity="${(r + i) % 3 ? 0.35 : 0.8}"/>`).join('')}`; }).join('')}
 </svg>`);
 
+// --- social icons (original generic glyphs, NOT real brand logos) ---------
+const SOCIAL_GLYPHS = {
+  // network of three linked nodes
+  linkedin: '<circle cx="14" cy="24" r="4.5"/><circle cx="34" cy="13" r="4.5"/><circle cx="34" cy="35" r="4.5"/><path d="M14 24L34 13M14 24L34 35" stroke="#fff" stroke-width="2.5" fill="none"/>',
+  // speech bubble
+  facebook: '<path d="M10 12h28a3 3 0 0 1 3 3v14a3 3 0 0 1-3 3H25l-8 7v-7h-7a3 3 0 0 1-3-3V15a3 3 0 0 1 3-3z"/>',
+  // play triangle in a ring
+  youtube: '<circle cx="24" cy="24" r="14" fill="none" stroke="#fff" stroke-width="3"/><path d="M20 17l12 7-12 7z"/>',
+  // camera body with lens
+  instagram: '<rect x="9" y="14" width="30" height="21" rx="4" fill="none" stroke="#fff" stroke-width="3"/><circle cx="24" cy="24.5" r="5.5"/><rect x="16" y="10" width="8" height="4" rx="1.5"/>',
+};
+Object.entries(SOCIAL_GLYPHS).forEach(([name, glyph]) => {
+  write(`social-${name}.svg`, `${svgOpen(48, 48, 'role="img"')}
+  <title>${esc(name)} icon</title>
+  <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#14b8a6"/><stop offset="1" stop-color="#0b3d2e"/></linearGradient></defs>
+  <circle cx="24" cy="24" r="24" fill="url(#g)"/>
+  <g fill="#fff">${glyph}</g>
+</svg>`);
+});
+
 // --- favicon ---------------------------------------------------------------
 write('favicon.svg', `${svgOpen(64, 64)}
   <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2dd4bf"/><stop offset="1" stop-color="#0f766e"/></linearGradient></defs>

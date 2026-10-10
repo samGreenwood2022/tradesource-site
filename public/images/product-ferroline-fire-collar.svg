@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" width="400" height="300" role="img">
+  <title>Ferroline Fire-Rated Pipe Collar</title>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#a1c8b5"/><stop offset="1" stop-color="#4e9773"/></linearGradient>
+    <linearGradient id="disc" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#44916b"/><stop offset="1" stop-color="#215d3f"/></linearGradient>
+  </defs>
+  <rect width="400" height="300" fill="url(#bg)"/>
+  <circle cx="100" cy="50" r="90" fill="#fff" opacity=".18"/>
+  <circle cx="320" cy="270" r="110" fill="#2f855a" opacity=".18"/>
+  <rect x="-20" y="214" width="440" height="100" fill="#28714d" opacity=".12"/>
+  <circle cx="200" cy="140" r="86" fill="url(#disc)"/>
+  <circle cx="200" cy="140" r="86" fill="none" stroke="#fff" stroke-opacity=".35" stroke-width="3"/>
+  <g transform="translate(110 50) scale(3.75)" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="24" cy="24" r="16"/><circle cx="24" cy="24" r="7"/></g>
+</svg>

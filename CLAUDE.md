@@ -22,6 +22,7 @@ Read `README.md` (overview), `LOCATORS.md` (locator strategies and deliberate qu
 - `server.js`: static server with SPA fallback, a path-traversal guard (403 outside `public/`), and two fake endpoints: `POST /api/graphql` and `POST /api/contact-manufacturer`.
 - `public/app.js`: vanilla JS router and all views, with delegated `a[data-spa]` navigation. Shared helpers are on `window.TS` (`util.js`). `data.js` holds all fictional data; `api-data.js` holds the API data.
 - `public/overlays.js`: cookie banner and "new feature" dialog.
+- `public/region.js`: location/language selector, region confirmation dialog and reminder banner. It uses `window.TS.navigate`, which `app.js` exposes.
 - Session is demo-only: `localStorage` key `tradesource.session`.
 
 ## Contracts to keep stable
@@ -33,6 +34,7 @@ These are what Sam's tests depend on. Don't rename or restructure them casually.
 - **GraphQL shape:** requests are an array of `{operationName, query, variables}` and responses are an array. The tiles query (containing `paginatedResponse`) returns `data.<op>.byBrandId.paginatedResponse.{items,totalItems}`; the filters query returns `filters`. Sam's stub tests (rename, empty, 500, slow, dropped, malformed) rely on this, and the only URL change from NBS is `**/api.source.thenbs.com/graphql` to `**/api/graphql`.
 - **Deliberate quirks, not bugs:** breadcrumb `<nav>` has no accessible name, the Browse menu has an explicit `role="menu"`, manufacturer cards have long accessible names, the social links are icon-only, and two search boxes exist (desktop plus a hidden mobile copy).
 - **Contact manufacturer:** signed out shows a "Sign in required" dialog; signed in shows a Subject/Question form posting to `/api/contact-manufacturer`. When the dialog is open, the header "Sign in" and the dialog's "Sign in to continue" can both match, so tests scope to `role=dialog`.
+- **Region selector:** the header locale button opens a panel; the Location, Language and banner Country controls are custom `role=combobox` / `listbox` / `option` widgets (deliberately not native `<select>`, so `selectOption()` doesn't work). Saving a different country shows "Confirm region change", then goes to the homepage and shows a bottom "Region reminder" banner. The detected country is fixed at the UK; state is `localStorage` `tradesource.region` and `sessionStorage` `tradesource.regionBannerDismissed`. URLs stay `/en/gb/...` whatever the region.
 - **Overlays:** the cookie banner and feature dialog are sequential on purpose (two overlays sharing one backdrop deadlocked `addLocatorHandler`). Switch them off with the cookie `tradesource_overlays=off`.
 - **Visual stability:** the homepage lazy regions use fixed tile heights so masked screenshots stay stable. Don't make their sizes content-dependent. Baselines are not committed (they're per browser and OS).
 - **Look:** a cohesive green and teal palette. Sam asked for low contrast between tile colours, so avoid introducing clashing hues.

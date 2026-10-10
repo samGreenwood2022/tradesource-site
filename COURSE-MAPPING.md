@@ -106,5 +106,6 @@ framework's first run. Manufacturer, product and category pages are static betwe
 
 ## Not replicated
 
-The OneTrust geolocation API test calls a third party. TradeSource has a static "UK" locale button, so
-there is nothing equivalent to call. The `@block-analytics` scenario still works (there is nothing to block).
+The OneTrust geolocation API test calls a third party. TradeSource has no geolocation lookup: the detected
+country is fixed at the UK, so the locale button shows "UK" by default and there is nothing equivalent to call.
+(The location and language selector, region confirmation and reminder banner are replicated; see LOCATORS.md.) The `@block-analytics` scenario still works (there is nothing to block).

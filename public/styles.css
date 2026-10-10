@@ -489,3 +489,70 @@ img.tile-logo { display: block; border-radius: 12px; background: none; object-fi
 .contact-dialog [aria-invalid="true"] { border-color: #b91c1c; }
 .contact-note { color: #4b5563; font-size: 0.9rem; }
 .overlay-actions button:disabled { opacity: 0.6; cursor: default; }
+
+/* Location + language selector */
+.region-panel {
+  position: absolute;
+  z-index: 950;
+  width: 300px;
+  box-sizing: border-box;
+  padding: 1.1rem 1.25rem;
+  background: #fff;
+  border-radius: 6px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+  color: #1f2937;
+}
+.region-panel h2 { margin: 0 0 0.9rem; font-size: 1rem; }
+.field-label { display: block; margin: 0.6rem 0 0.25rem; font-size: 0.95rem; }
+.region-actions { justify-content: flex-end; margin-top: 1.1rem; }
+
+.combobox { position: relative; }
+.combobox-trigger {
+  width: 100%;
+  min-width: 200px;
+  box-sizing: border-box;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.6rem 0.75rem;
+  background: #fff;
+  border: 1px solid #94a3a0;
+  border-radius: 4px;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+}
+.combobox-trigger::after { content: ''; border: 5px solid transparent; border-top-color: #4b5563; margin-top: 5px; }
+.combobox-list {
+  position: absolute;
+  z-index: 960;
+  left: 0;
+  right: 0;
+  margin: 2px 0 0;
+  padding: 0.25rem 0;
+  list-style: none;
+  background: #fff;
+  border: 1px solid #cbd5d1;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+.combobox-list[hidden] { display: none; }
+.combobox--up .combobox-list { bottom: 100%; margin: 0 0 2px; }
+.combobox-list [role="option"] { padding: 0.5rem 0.75rem; cursor: pointer; color: #1f2937; }
+.combobox-list [role="option"]:hover, .combobox-list [role="option"]:focus { background: #e6f4f1; outline: none; }
+.combobox-list [aria-selected="true"] { font-weight: 700; }
+
+.region-confirm { top: 22%; left: 50%; transform: translateX(-50%); width: min(560px, calc(100% - 2rem)); text-align: center; }
+.region-confirm h2 { font-size: 1rem; margin: 0.5rem 0 1rem; }
+.region-confirm-actions { justify-content: center; margin-top: 1.5rem; }
+.region-confirm .globe { display: block; margin: 0 auto; }
+
+.region-banner { position: fixed; z-index: 900; left: 0; right: 0; bottom: 0; background: #e3f1ee; border-top: 1px solid #cbd5d1; padding: 0.75rem 1rem; }
+.region-banner-inner { display: flex; align-items: center; gap: 0.75rem; max-width: 1200px; margin: 0 auto; }
+.region-banner-text { flex: 1; margin: 0; font-size: 0.9rem; }
+.region-banner-controls { display: flex; align-items: center; gap: 0.75rem; }
+.region-banner .combobox-trigger { min-width: 190px; padding: 0.45rem 0.65rem; }
+.region-continue { padding: 0.5rem 1rem; border: none; border-radius: 4px; background: #0f766e; color: #fff; cursor: pointer; }
+.region-banner-close { border: none; background: none; font-size: 1.4rem; line-height: 1; cursor: pointer; color: #374151; }
+body.has-region-banner { padding-bottom: 80px; }

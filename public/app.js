@@ -957,6 +957,8 @@
     window.scrollTo(0, 0);
   }
 
+  window.TS.navigate = navigate; // used by region.js
+
   window.addEventListener('popstate', () => {
     render(window.location.pathname, window.location.search);
   });

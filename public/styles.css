@@ -147,6 +147,11 @@ body {
   cursor: pointer;
 }
 
+.social-links { list-style: none; display: flex; gap: 0.6rem; margin: 0.9rem 0 0; padding: 0; }
+.social-link { display: inline-flex; border-radius: 50%; line-height: 0; transition: transform 0.15s; }
+.social-link:hover, .social-link:focus-visible { transform: translateY(-2px); outline: 2px solid #14b8a6; outline-offset: 2px; }
+.social-link img { display: block; }
+
 .contact-button {
   background: #0b3d2e !important;
   color: #fff !important;

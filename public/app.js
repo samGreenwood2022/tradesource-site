@@ -1,45 +1,160 @@
 // Minimal client-side router for the TradeSource practice site.
-// No framework, no build step — plain DOM manipulation, deliberately
+// No framework, no build step: plain DOM manipulation, deliberately
 // kept simple since the site exists to be tested, not to be impressive.
 
 (function () {
-  const DATA = window.TRADESOURCE_DATA;
+  const { DATA, escapeHtml, findManufacturer, findProduct, manufacturerPath, productPath } = window.TS;
+  const TS = window.TS;
   const app = document.getElementById('app');
 
-  function findManufacturer(slug) {
-    return DATA.manufacturers.find((m) => m.slug === slug);
+  // Bumped on every navigation, so a slow response for a page we have already
+  // left can tell it is stale and leave the screen alone.
+  let renderToken = 0;
+
+  // ---------------------------------------------------------------
+  // Small view helpers
+  // ---------------------------------------------------------------
+
+  function manufacturerTile(m) {
+    return `
+      <a href="${manufacturerPath(m, 'overview')}" data-spa class="tile tile--manufacturer" data-cy="resultTile" data-testid="result-tile" data-manufacturer-slug="${m.slug}" title="View ${escapeHtml(m.name)}">
+        <img class="tile-logo" src="${TS.logoSrc(m)}" alt="${escapeHtml(m.name)}" width="48" height="48" />
+        <span class="tile-name">${escapeHtml(m.name)}</span>
+        <span class="tile-desc">${escapeHtml(m.tagline)}</span>
+      </a>
+    `;
   }
 
-  function escapeHtml(str) {
-    return String(str).replace(/[&<>"']/g, (c) => ({
-      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
-    })[c]);
+  function productTile(p) {
+    const manufacturer = findManufacturer(p.manufacturerSlug);
+    return `
+      <a href="${productPath(p)}" data-spa class="tile tile--product" data-cy="resultTile" data-testid="result-tile" title="View ${escapeHtml(p.name)}">
+        <img class="tile-image" src="${TS.productSrc(p)}" alt="" width="400" height="300" />
+        <span class="tile-name">${escapeHtml(p.name)}</span>
+        <span class="tile-manufacturer">${escapeHtml(manufacturer ? manufacturer.name : '')}</span>
+        <span class="tile-desc">${escapeHtml(p.description)}</span>
+      </a>
+    `;
+  }
+
+  // The breadcrumb trail is an <app-breadcrumbs> component wrapping a <nav>
+  // that has NO aria-label (so getByRole('navigation', { name: 'Breadcrumb' })
+  // finds nothing and the component tag is the stable locator). That missing
+  // label is a genuine accessibility gap, kept on purpose as a teaching point.
+  function breadcrumbsHtml(items) {
+    return `<app-breadcrumbs data-cy="breadcrumbs"><nav><ol>${items}</ol></nav></app-breadcrumbs>`;
+  }
+
+  function shuffled(list) {
+    const copy = list.slice();
+    for (let i = copy.length - 1; i > 0; i -= 1) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [copy[i], copy[j]] = [copy[j], copy[i]];
+    }
+    return copy;
   }
 
   // ---------------------------------------------------------------
-  // Views
+  // Home
   // ---------------------------------------------------------------
+
+  // Sponsored CPD promos (all point at the one manufacturer with a CPD tab).
+  const CPD_PROMOS = [
+    'Specifying Door Hardware for Fire Doors',
+    'Access Control Basics for Specifiers',
+    'Keying Systems Explained',
+  ];
+
+  // These four sections change on every load (random picks and order), and sit
+  // below the fold: they are only added to the page when scrolled near. That
+  // makes them realistic targets for visual-regression masks and for lazy-load
+  // waits.
+  const HOME_SECTIONS = {
+    brands() {
+      const picks = shuffled(DATA.manufacturers).slice(0, 3);
+      return `
+        <app-sponsored-brands data-cy="sponsoredBrands">
+          <h2>Sponsored by <span class="sponsor-name">${escapeHtml(picks[0].name)}</span></h2>
+          <div class="tiles">${picks.map(manufacturerTile).join('')}</div>
+        </app-sponsored-brands>`;
+    },
+    products() {
+      const picks = shuffled(DATA.products).slice(0, 3);
+      return `
+        <app-sponsored-products data-cy="sponsoredProducts">
+          <h2>Sponsored products</h2>
+          <div class="tiles">${picks.map(productTile).join('')}</div>
+        </app-sponsored-products>`;
+    },
+    cpd() {
+      const halden = findManufacturer('halden-locks-uk');
+      const tiles = shuffled(CPD_PROMOS).map((title) => `
+        <a href="${manufacturerPath(halden, 'cpd')}" data-spa class="tile tile--cpd" data-cy="cpdTile">
+          <span class="tile-name">${escapeHtml(title)}</span>
+          <span class="tile-manufacturer">${escapeHtml(halden.name)}</span>
+        </a>`).join('');
+      return `
+        <app-sponsored-cpd data-cy="sponsoredCpd">
+          <h2>Sponsored CPD</h2>
+          <div class="tiles">${tiles}</div>
+        </app-sponsored-cpd>`;
+    },
+    inspiration() {
+      const items = shuffled([
+        ...DATA.products.map((p) => ({ href: productPath(p), name: p.name, sub: 'Product', img: TS.productSrc(p) })),
+        ...DATA.categories.map((c) => ({ href: TS.categoryPath([c]), name: c.name, sub: 'Category', img: TS.categorySrc(c) })),
+      ]).slice(0, 9);
+      // Tile heights follow a fixed pattern by position, so only the content
+      // (not the grid's overall size) changes between loads. A visual-regression
+      // mask only works while the masked box keeps its size and position.
+      const heights = [150, 210, 150, 180, 210, 150, 180, 150, 210];
+      const tiles = items.map((it, i) => {
+        const height = heights[i % heights.length] - 60;
+        return `<a href="${it.href}" data-spa class="inspiration-tile" style="height:${height + 60}px"><img src="${it.img}" alt="" width="400" height="300" /><span class="inspiration-caption"><span class="tile-name">${escapeHtml(it.name)}</span><span class="tile-manufacturer">${it.sub}</span></span></a>`;
+      }).join('');
+      return `
+        <app-inspiration-grid data-cy="inspirationGrid">
+          <h2>Find some inspiration</h2>
+          <div class="inspiration-grid">${tiles}</div>
+        </app-inspiration-grid>`;
+    },
+  };
 
   function renderHome() {
     app.innerHTML = `
       <section class="hero">
-        <h1>Find trade products and manufacturers</h1>
-        <p>Search TradeSource's fictional catalogue of manufacturers and products, used for automation-testing practice.</p>
+        <img class="hero-image" src="/images/hero.svg" alt="Illustration of a city skyline at dusk" width="1200" height="320" />
+        <div class="hero-text">
+          <h1>Find trade products and manufacturers</h1>
+          <p>Search TradeSource's fictional catalogue of manufacturers and products, used for automation-testing practice.</p>
+        </div>
       </section>
+      ${Object.keys(HOME_SECTIONS).map((key) => `<div class="lazy-region" data-lazy="${key}"></div>`).join('')}
     `;
+
+    const regions = app.querySelectorAll('[data-lazy]');
+    const fill = (region) => {
+      region.innerHTML = HOME_SECTIONS[region.dataset.lazy]();
+      region.classList.add('is-loaded');
+    };
+    if (!('IntersectionObserver' in window)) {
+      regions.forEach(fill);
+      return;
+    }
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          fill(entry.target);
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { rootMargin: '150px' });
+    regions.forEach((r) => observer.observe(r));
   }
 
-  // Simple generic line-art icons — invented shapes, not copied product
-  // photography — just enough to make a product tile look like more than
-  // a text link.
-  const ICONS = {
-    vacuum: '<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2"><rect x="20" y="6" width="8" height="22" rx="3"/><path d="M14 28h20l4 10H10z"/><circle cx="16" cy="40" r="3"/><circle cx="32" cy="40" r="3"/></svg>',
-    dryer: '<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2"><rect x="12" y="8" width="24" height="30" rx="4"/><path d="M18 38v4M30 38v4" /><circle cx="24" cy="20" r="5"/></svg>',
-    tower: '<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2"><rect x="16" y="4" width="16" height="40" rx="6"/><path d="M20 14h8M20 22h8M20 30h8"/></svg>',
-    bolt: '<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 10h20l4 6-4 6H14l-4-6z"/><rect x="22" y="22" width="4" height="18"/></svg>',
-    collar: '<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2"><circle cx="24" cy="24" r="16"/><circle cx="24" cy="24" r="7"/></svg>',
-    panel: '<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="14" width="36" height="20" rx="2"/><path d="M6 20h36M6 28h36M16 14v20M32 14v20"/></svg>',
-  };
+  // ---------------------------------------------------------------
+  // Search
+  // ---------------------------------------------------------------
 
   const TABS = [
     { key: 'products', label: 'Products' },
@@ -52,12 +167,8 @@
   function renderSearch(query) {
     const q = (query || '').trim().toLowerCase();
 
-    const matchedManufacturers = DATA.manufacturers.filter((m) =>
-      m.name.toLowerCase().includes(q),
-    );
-    const matchedProducts = DATA.products.filter((p) =>
-      p.name.toLowerCase().includes(q),
-    );
+    const matchedManufacturers = DATA.manufacturers.filter((m) => m.name.toLowerCase().includes(q));
+    const matchedProducts = DATA.products.filter((p) => p.name.toLowerCase().includes(q));
 
     function panelFor(tab) {
       if (tab === 'manufacturers') {
@@ -70,24 +181,14 @@
           ? `<div class="tiles">${matchedProducts.map(productTile).join('')}</div>`
           : emptyState('products');
       }
-      // CPD, Literature, Case studies — no fictional content behind these
-      // yet, they exist so the tab bar matches the real site's shape.
+      // CPD, Literature, Case studies: no search content behind these, they
+      // exist so the tab bar matches the shape of the real site.
       return emptyState(tab);
     }
 
     function emptyState(tab) {
       const label = TABS.find((t) => t.key === tab)?.label ?? tab;
       return `<p class="empty-state">No ${label.toLowerCase()} found for &ldquo;${escapeHtml(query || '')}&rdquo;.</p>`;
-    }
-
-    function wireTileClicks() {
-      app.querySelectorAll('[data-manufacturer-slug]').forEach((tile) => {
-        tile.addEventListener('click', (e) => {
-          e.preventDefault();
-          const m = findManufacturer(tile.dataset.manufacturerSlug);
-          navigate(manufacturerPath(m, 'overview'));
-        });
-      });
     }
 
     const totalCount = matchedManufacturers.length + matchedProducts.length;
@@ -107,46 +208,226 @@
       </section>
     `;
 
-    wireTileClicks();
-
     app.querySelectorAll('.tab-button').forEach((btn) => {
       btn.addEventListener('click', () => {
-        app.querySelectorAll('.tab-button').forEach((b) => b.classList.remove('is-active'));
-        btn.classList.add('is-active');
-        app.querySelectorAll('.tab-button').forEach((b) => b.setAttribute('aria-selected', String(b === btn)));
+        app.querySelectorAll('.tab-button').forEach((b) => {
+          b.classList.toggle('is-active', b === btn);
+          b.setAttribute('aria-selected', String(b === btn));
+        });
         app.querySelector('[data-tab-panel="active"]').innerHTML = panelFor(btn.dataset.tab);
-        wireTileClicks();
       });
     });
   }
 
-  function manufacturerTile(m) {
-    return `
-      <a href="#" class="tile tile--manufacturer" data-cy="resultTile" data-testid="result-tile" data-manufacturer-slug="${m.slug}" title="View ${escapeHtml(m.name)}">
-        <span class="tile-logo" role="img" aria-label="${escapeHtml(m.name)}" style="background:${m.color}">${escapeHtml(m.initials)}</span>
-        <span class="tile-name">${escapeHtml(m.name)}</span>
-        <span class="tile-desc">${escapeHtml(m.tagline)}</span>
-      </a>
-    `;
+  // ---------------------------------------------------------------
+  // Categories and products
+  // ---------------------------------------------------------------
+
+  // A trail for pages that are not in the category tree: links, then the
+  // current page as plain text.
+  function simpleTrail(links, current) {
+    return links.map(([text, href]) => `<li><a href="${href}" data-spa>${escapeHtml(text)}</a></li>`).join('')
+      + `<li><span aria-current="page">${escapeHtml(current)}</span></li>`;
   }
 
-  function productTile(p) {
-    const manufacturer = findManufacturer(p.manufacturerSlug);
-    return `
-      <a href="#" class="tile tile--product" data-cy="resultTile" data-testid="result-tile" title="View ${escapeHtml(p.name)}">
-        <span class="tile-icon">${ICONS[p.icon] || ''}</span>
-        <span class="tile-name">${escapeHtml(p.name)}</span>
-        <span class="tile-manufacturer">${escapeHtml(manufacturer ? manufacturer.name : '')}</span>
-        <span class="tile-desc">${escapeHtml(p.description)}</span>
-      </a>
-    `;
+  function renderCategoriesIndex() {
+    document.title = 'Categories | TradeSource';
+    app.innerHTML = `
+      <section class="categories-page">
+        ${breadcrumbsHtml(simpleTrail([['Home', '/en/gb']], 'Categories'))}
+        <h1>Categories</h1>
+        <ul class="link-list">
+          <li><a href="/en/gb/categories/catalogue" data-spa data-cy="categoryLink">Catalogue</a></li>
+        </ul>
+      </section>`;
   }
 
-  // Manufacturer pages live under /en/gb/manufacturer/<slug>/<id>/<section>.
-  // The bare /manufacturer/... form is still accepted, so older links keep working.
-  function manufacturerPath(m, section) {
-    return `/en/gb/manufacturer/${m.slug}/${m.id}/${section}`;
+  function renderCatalogueIndex() {
+    document.title = 'Catalogue | TradeSource';
+    app.innerHTML = `
+      <section class="categories-page">
+        ${breadcrumbsHtml(simpleTrail([['Home', '/en/gb'], ['Categories', '/en/gb/categories']], 'Catalogue'))}
+        <h1>Catalogue</h1>
+        <div class="category-cards">
+          ${DATA.categories.map((c) => `
+            <a href="${TS.categoryPath([c])}" data-spa class="category-card" data-cy="categoryLink">
+              <img src="${TS.categorySrc(c)}" alt="" width="400" height="300" />
+              <span class="category-card-name">${escapeHtml(c.name)}</span>
+            </a>`).join('')}
+        </div>
+      </section>`;
   }
+
+  function renderCategory(id) {
+    const entry = TS.categoryIndex[id];
+    if (!entry) {
+      document.title = 'Page not found | TradeSource';
+      app.innerHTML = '<section><h1>Category not found</h1></section>';
+      return;
+    }
+    const { node, chain } = entry;
+    document.title = `${node.name} | TradeSource`;
+    const ids = new Set(TS.subtreeIds(node));
+    const products = DATA.products.filter((p) => ids.has(p.categoryId));
+    app.innerHTML = `
+      <section class="category-page">
+        ${breadcrumbsHtml(TS.breadcrumbs(chain, { currentIsLink: false }))}
+        <h1>${escapeHtml(node.name)}</h1>
+        ${node.children.length ? `
+          <h2>Subcategories</h2>
+          <ul class="link-list">
+            ${node.children.map((c) => `<li><a href="${TS.categoryPath(chain.concat(c))}" data-spa data-cy="categoryLink">${escapeHtml(c.name)}</a></li>`).join('')}
+          </ul>` : ''}
+        <h2>Products</h2>
+        ${products.length
+          ? `<div class="tiles">${products.map(productTile).join('')}</div>`
+          : '<p class="empty-state">No products in this category yet.</p>'}
+      </section>`;
+  }
+
+  function renderProduct(slug) {
+    const p = findProduct(slug);
+    if (!p) {
+      document.title = 'Page not found | TradeSource';
+      app.innerHTML = '<section><h1>Product not found</h1></section>';
+      return;
+    }
+    const m = findManufacturer(p.manufacturerSlug);
+    const chain = TS.categoryIndex[p.categoryId].chain;
+    document.title = `${p.name} | TradeSource`;
+    app.innerHTML = `
+      <section class="product-page">
+        ${breadcrumbsHtml(TS.breadcrumbs(chain, { currentIsLink: true }))}
+        <div class="product-header">
+          <img class="product-image" src="${TS.productSrc(p)}" alt="${escapeHtml(p.name)}" width="400" height="300" />
+          <div>
+            <h1 data-testid="product-name">${escapeHtml(p.name)}</h1>
+            <p class="product-manufacturer">By <a href="${manufacturerPath(m, 'overview')}" data-spa data-cy="productManufacturerLink">${escapeHtml(m.name)}</a></p>
+          </div>
+        </div>
+        <p class="product-description">${escapeHtml(p.description)}</p>
+        <h2>Specification</h2>
+        <table class="spec-table" data-cy="specTable">
+          <tbody>
+            ${p.specs.map(([k, v]) => `<tr><th scope="row">${escapeHtml(k)}</th><td>${escapeHtml(v)}</td></tr>`).join('')}
+          </tbody>
+        </table>
+      </section>`;
+  }
+
+  // ---------------------------------------------------------------
+  // Fictional API client
+  // ---------------------------------------------------------------
+
+  // POSTs a one-operation batch (an array, like GraphQL batching) and returns
+  // the matching entry from the array that comes back. Non-2xx responses and
+  // dropped connections both throw, so callers can treat "no usable data" as a
+  // single case.
+  async function gql(operationName, query, variables) {
+    const response = await fetch('/api/graphql', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify([{ operationName, query, variables }]),
+    });
+    if (!response.ok) throw new Error(`API responded ${response.status}`);
+    const json = await response.json();
+    return Array.isArray(json) ? json : [json];
+  }
+
+  // The manufacturer tabs that load a list from the API.
+  const LIST_TABS = {
+    'third-party-certifications': { op: 'certifications', tag: 'app-certificate-list', label: 'Certifications' },
+    cpd: { op: 'cpd', tag: 'app-cpd-list', label: 'CPD' },
+    literature: { op: 'literature', tag: 'app-literature-list', label: 'Literature' },
+    'case-studies': { op: 'caseStudies', tag: 'app-case-study-list', label: 'Case studies' },
+  };
+
+  // Loads a tab's list. Two requests share the operation name: one for the
+  // filter options and one for the result tiles (only that one asks for
+  // "paginatedResponse"). Outcomes, which the course's network tests rely on:
+  //   - tiles arrive with items       -> results wrapper with tiles
+  //   - tiles arrive with no items    -> results wrapper with the "no results" panel
+  //   - tiles request fails/is unusable -> the list area appears but stays blank
+  //     (no wrapper, no tiles, no message), a known gap the tests document.
+  async function loadList(container, tabInfo, m, token) {
+    const { op, tag } = tabInfo;
+    container.innerHTML = `<${tag} class="result-list" data-cy="resultList"><p class="loading" data-cy="loading">Loading&hellip;</p></${tag}>`;
+    const list = container.querySelector(tag);
+
+    const filtersQuery = `query ${op}($brandSlug: String!) { ${op} { byBrandId(brandSlug: $brandSlug) { filters { id label options } } } }`;
+    const tilesQuery = `query ${op}($brandSlug: String!, $page: Int) { ${op} { byBrandId(brandSlug: $brandSlug, page: $page) { paginatedResponse { items { id name type } totalItems } } } }`;
+    const variables = { brandSlug: m.slug, page: 1 };
+
+    const [filtersResult, tilesResult] = await Promise.allSettled([
+      gql(op, filtersQuery, variables),
+      gql(op, tilesQuery, variables),
+    ]);
+    if (token !== renderToken) return; // user has moved on
+    list.querySelector('.loading')?.remove();
+
+    if (tilesResult.status !== 'fulfilled') return;
+    const tilesEntry = tilesResult.value.find((e) => Array.isArray(e?.data?.[op]?.byBrandId?.paginatedResponse?.items));
+    if (!tilesEntry) return;
+    const items = tilesEntry.data[op].byBrandId.paginatedResponse.items;
+
+    let filterOptions = [];
+    if (filtersResult.status === 'fulfilled') {
+      const f = filtersResult.value.find((e) => e?.data?.[op]?.byBrandId?.filters);
+      filterOptions = f ? f.data[op].byBrandId.filters.flatMap((x) => x.options) : [];
+    }
+
+    const tileHtml = (list) => list.map((item) => `
+      <article class="tile result-tile" data-cy="searchResultTile">
+        <h3 class="tile-name" data-cy="searchResultTileTitle"> ${escapeHtml(item.name)} </h3>
+        <p class="tile-desc">${escapeHtml(item.type || '')}</p>
+      </article>`).join('');
+    const noResults = '<app-no-results-guidance data-cy="noResultsGuidance"><p>Sorry, no results were found</p><p>Try removing a filter or searching for something else.</p></app-no-results-guidance>';
+    const resultsHtml = (list) => (list.length ? `<div class="tiles">${tileHtml(list)}</div>` : noResults);
+
+    list.insertAdjacentHTML('beforeend', `
+      <app-search-result-wrapper data-cy="searchResultWrapper">
+        ${filterOptions.length ? `
+          <label class="filter-label">Type
+            <select data-cy="filterType" id="filter-type">
+              <option value="">All</option>
+              ${filterOptions.map((o) => `<option value="${escapeHtml(o)}">${escapeHtml(o)}</option>`).join('')}
+            </select>
+          </label>` : ''}
+        <div class="results" data-cy="results">${resultsHtml(items)}</div>
+      </app-search-result-wrapper>`);
+
+    const select = list.querySelector('#filter-type');
+    if (select) {
+      select.addEventListener('change', () => {
+        const chosen = select.value;
+        list.querySelector('[data-cy="results"]').innerHTML = resultsHtml(chosen ? items.filter((i) => i.type === chosen) : items);
+      });
+    }
+  }
+
+  // Overview's "Certification bodies": fetched a moment after the page shell
+  // appears, so anything that needs it has to wait for it.
+  async function loadCertificationBodies(container, m, token) {
+    const query = 'query certificationBodies($brandSlug: String!) { certificationBodies { byBrandId(brandSlug: $brandSlug) { items { name } } } }';
+    try {
+      const entries = await gql('certificationBodies', query, { brandSlug: m.slug });
+      if (token !== renderToken) return;
+      const entry = entries.find((e) => Array.isArray(e?.data?.certificationBodies?.byBrandId?.items));
+      const items = entry ? entry.data.certificationBodies.byBrandId.items : [];
+      if (!items.length) return;
+      container.innerHTML = `
+        <section class="certification-bodies" data-cy="certificationBodies">
+          <h2>Certification bodies</h2>
+          <ul>${items.map((c) => `<li>${escapeHtml(c.name)}</li>`).join('')}</ul>
+        </section>`;
+    } catch (e) {
+      // Section simply doesn't appear.
+    }
+  }
+
+  // ---------------------------------------------------------------
+  // Manufacturer pages
+  // ---------------------------------------------------------------
 
   // Tab strip for a manufacturer page. Most show "Certifications"; ones flagged
   // hasCpd show "CPD" instead, so the strip genuinely differs between pages.
@@ -167,7 +448,7 @@
     const m = findManufacturer(slug);
     if (!m) {
       document.title = 'Page not found | TradeSource';
-      app.innerHTML = `<section><h1>Manufacturer not found</h1></section>`;
+      app.innerHTML = '<section><h1>Manufacturer not found</h1></section>';
       return;
     }
 
@@ -179,37 +460,29 @@
     const nav = `
       <nav class="manufacturer-nav" aria-label="Manufacturer navigation" data-cy="manufacturerNav">
         <div class="mat-mdc-tab-links">
-          ${sections.map((t) => `<a href="${manufacturerPath(m, t.key)}" id="nav-${t.key}" class="mdc-tab${t === current ? ' mdc-tab--active' : ''}"${t.cy ? ` data-cy="${t.cy}"` : ''} data-testid="nav-${t.key}"${t === current ? ' aria-current="page"' : ''}>${t.label}</a>`).join('')}
+          ${sections.map((t) => `<a href="${manufacturerPath(m, t.key)}" data-spa id="nav-${t.key}" class="mdc-tab${t === current ? ' mdc-tab--active' : ''}"${t.cy ? ` data-cy="${t.cy}"` : ''} data-testid="nav-${t.key}"${t === current ? ' aria-current="page"' : ''}>${t.label}</a>`).join('')}
         </div>
       </nav>
     `;
 
-    const overview = `
-      <p class="manufacturer-about" data-testid="manufacturer-about">${escapeHtml(m.about)}</p>
-
-      ${m.certificationBodies ? `
-        <section class="certification-bodies" data-cy="certificationBodies">
-          <h2>Certification bodies</h2>
-          <ul>${m.certificationBodies.map((c) => `<li>${escapeHtml(c)}</li>`).join('')}</ul>
-        </section>
-      ` : ''}
-
-      ${ownProducts.length ? `
-        <h2>Products</h2>
-        <div class="tiles">${ownProducts.map(productTile).join('')}</div>
-      ` : ''}
-    `;
-
-    const placeholder = `
-      <section class="manufacturer-section" data-cy="sectionPlaceholder">
-        <h2>${current.label}</h2>
-        <p class="empty-state">There is no ${current.label.toLowerCase()} content for ${escapeHtml(m.name)} yet.</p>
-      </section>
-    `;
+    let body;
+    if (current.key === 'overview') {
+      body = `
+        <p class="manufacturer-about" data-testid="manufacturer-about">${escapeHtml(m.about)}</p>
+        <div data-slot="certification-bodies"></div>
+        ${ownProducts.length ? `<h2>Products</h2><div class="tiles">${ownProducts.map(productTile).join('')}</div>` : ''}
+      `;
+    } else if (current.key === 'products') {
+      body = `<h2>Products</h2>${ownProducts.length ? `<div class="tiles">${ownProducts.map(productTile).join('')}</div>` : '<p class="empty-state">No products listed.</p>'}`;
+    } else if (current.key === 'about') {
+      body = `<h2>About us</h2><p class="manufacturer-about">${escapeHtml(m.about)}</p>`;
+    } else {
+      body = `<h2>${current.label}</h2><div data-slot="list"></div>`;
+    }
 
     app.innerHTML = `
       <section class="manufacturer-page">
-        <span class="tile-logo tile-logo--large" role="img" aria-label="${escapeHtml(m.name)} logo" style="background:${m.color}">${escapeHtml(m.initials)}</span>
+        <img class="tile-logo tile-logo--large" src="${TS.logoSrc(m)}" alt="${escapeHtml(m.name)} logo" width="72" height="72" />
         <div class="brand-title-container">
           <h1 id="manufacturer-name" data-testid="manufacturer-name">${escapeHtml(m.name)}</h1>
         </div>
@@ -230,16 +503,15 @@
 
         ${nav}
 
-        ${current.key === 'overview' ? overview : placeholder}
+        ${body}
       </section>
     `;
 
-    app.querySelectorAll('.mat-mdc-tab-links a').forEach((link) => {
-      link.addEventListener('click', (e) => {
-        e.preventDefault();
-        navigate(link.getAttribute('href'));
-      });
-    });
+    const token = renderToken;
+    const certSlot = app.querySelector('[data-slot="certification-bodies"]');
+    if (certSlot) loadCertificationBodies(certSlot, m, token);
+    const listSlot = app.querySelector('[data-slot="list"]');
+    if (listSlot) loadList(listSlot, LIST_TABS[current.key], m, token);
   }
 
   // ---------------------------------------------------------------
@@ -410,12 +682,71 @@
   }
 
   // ---------------------------------------------------------------
+  // Header: search autocomplete and the Browse menu
+  // ---------------------------------------------------------------
+
+  // Suggestions appear under the search box once two or more characters are
+  // typed: an <app-autocomplete> with a Manufacturers section and a Products
+  // section, like the real site. They close on Enter, Escape, a click elsewhere
+  // or navigating.
+  function closeAutocomplete() {
+    document.querySelectorAll('app-autocomplete').forEach((el) => el.remove());
+  }
+
+  function updateAutocomplete(form, value) {
+    closeAutocomplete();
+    const term = value.trim().toLowerCase();
+    if (term.length < 2) return;
+    const manufacturers = DATA.manufacturers.filter((m) => m.name.toLowerCase().includes(term)).slice(0, 4);
+    const products = DATA.products.filter((p) => p.name.toLowerCase().includes(term)).slice(0, 4);
+    if (!manufacturers.length && !products.length) return;
+
+    const el = document.createElement('app-autocomplete');
+    el.setAttribute('data-cy', 'autocomplete');
+    el.innerHTML = `
+      ${manufacturers.length ? `<article class="manufacturers"><h3>Manufacturers</h3>
+        ${manufacturers.map((m) => `<a href="${manufacturerPath(m, 'overview')}" data-spa>${escapeHtml(m.name)} <span class="suggestion-sub">${escapeHtml(m.tagline)}</span></a>`).join('')}
+      </article>` : ''}
+      ${products.length ? `<article class="products"><h3>Products</h3>
+        ${products.map((p) => `<a href="${productPath(p)}" data-spa>${escapeHtml(p.name)}</a>`).join('')}
+      </article>` : ''}
+    `;
+    form.appendChild(el);
+  }
+
+  function buildBrowseMenu() {
+    const menu = document.querySelector('[data-cy="browseMenu"]');
+    menu.innerHTML = `
+      <h2>Categories</h2>
+      <ul>
+        ${DATA.categories.map((c) => `<li><a href="${TS.categoryPath([c])}" data-spa>${escapeHtml(c.name)}</a></li>`).join('')}
+      </ul>
+      <a href="/en/gb/categories" data-spa class="browse-all">All categories</a>
+    `;
+    const button = document.querySelector('[data-cy="browseButton"]');
+    button.addEventListener('click', () => {
+      menu.hidden = !menu.hidden;
+      button.setAttribute('aria-expanded', String(!menu.hidden));
+    });
+  }
+
+  // ---------------------------------------------------------------
   // Router
   // ---------------------------------------------------------------
 
   function render(pathname, search) {
+    renderToken += 1;
+    closeAutocomplete();
+    // The Browse menu closes when you navigate.
+    const browseMenu = document.querySelector('[data-cy="browseMenu"]');
+    if (browseMenu) {
+      browseMenu.hidden = true;
+      document.querySelector('[data-cy="browseButton"]').setAttribute('aria-expanded', 'false');
+    }
+
     document.title = 'TradeSource';
     renderAuth();
+
     if (pathname === '/en/gb') {
       renderHome();
       return;
@@ -431,31 +762,71 @@
       renderSignIn(search);
       return;
     }
+    if (pathname === '/en/gb/categories') {
+      renderCategoriesIndex();
+      return;
+    }
+    if (pathname === '/en/gb/categories/catalogue') {
+      renderCatalogueIndex();
+      return;
+    }
+    const categoryMatch = pathname.match(/^\/en\/gb\/category\/catalogue\/(?:[^/]+\/)+([^/]+)$/);
+    if (categoryMatch) {
+      renderCategory(categoryMatch[1]);
+      return;
+    }
+    const productMatch = pathname.match(/^\/en\/gb\/product\/([^/]+)\/[^/]+\/[^/]+$/);
+    if (productMatch) {
+      renderProduct(productMatch[1]);
+      return;
+    }
     const manufacturerMatch = pathname.match(/^(?:\/en\/gb)?\/manufacturer\/([^/]+)\/[^/]+\/([^/]+)$/);
     if (manufacturerMatch) {
       renderManufacturer(manufacturerMatch[1], manufacturerMatch[2]);
       return;
     }
-    app.innerHTML = `<section><h1>Page not found</h1></section>`;
+    document.title = 'Page not found | TradeSource';
+    app.innerHTML = '<section><h1>Page not found</h1></section>';
   }
 
   function navigate(pathAndQuery) {
     const [pathname, search] = pathAndQuery.split('?');
     window.history.pushState({}, '', pathAndQuery);
     render(pathname, search ? `?${search}` : '');
+    window.scrollTo(0, 0);
   }
 
   window.addEventListener('popstate', () => {
     render(window.location.pathname, window.location.search);
   });
 
+  // Any link marked data-spa navigates without a full page load, unless the
+  // user is opening it in a new tab (modifier keys) or it isn't a plain click.
+  document.addEventListener('click', (e) => {
+    const link = e.target.closest && e.target.closest('a[data-spa]');
+    if (link) {
+      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      e.preventDefault();
+      navigate(link.getAttribute('href'));
+      return;
+    }
+    // A click anywhere else closes the suggestions.
+    if (!e.target.closest || !e.target.closest('app-autocomplete')) closeAutocomplete();
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeAutocomplete();
+  });
+
   // Wire up both search boxes (desktop always visible, mobile hidden
   // behind the nav toggle) — deliberately two so cy.get(...).filter(':visible')
   // has a real reason to exist.
   document.querySelectorAll('.search-form').forEach((form) => {
+    const input = form.querySelector('[data-cy="searchFieldSearch"]');
+    input.addEventListener('input', () => updateAutocomplete(form, input.value));
     form.addEventListener('submit', (e) => {
       e.preventDefault();
-      const input = form.querySelector('[data-cy="searchFieldSearch"]');
+      closeAutocomplete();
       navigate(`/en/gb/search?q=${encodeURIComponent(input.value)}`);
     });
   });
@@ -469,7 +840,7 @@
   // Initial load
   // ---------------------------------------------------------------
 
-  renderAuth();
+  buildBrowseMenu();
 
   if (window.location.pathname === '/') {
     window.history.replaceState({}, '', '/en/gb');

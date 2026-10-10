@@ -36,13 +36,22 @@ type Group = {
 // Setup helpers
 // ---------------------------------------------------------------------------
 
+// The site shows a cookie banner and a "new feature" pop-up a moment after load.
+// They would get in the way of these examples, so switch them off with a cookie
+// (see the overlay example at the bottom of this file for handling them instead).
+async function overlaysOff(page: Page) {
+  await page.context().addCookies([{ name: 'tradesource_overlays', value: 'off', url: BASE }]);
+}
+
 async function signedOut(page: Page, path: string) {
+  await overlaysOff(page);
   await page.goto(BASE + '/en/gb');
   await page.evaluate(() => localStorage.clear());
   await page.goto(BASE + path);
 }
 
 async function signedIn(page: Page, path: string) {
+  await overlaysOff(page);
   await page.goto(BASE + '/en/gb');
   await page.evaluate(() =>
     localStorage.setItem(
@@ -130,6 +139,78 @@ const groups: Group[] = [
           ['css :has-text', (p) => p.locator('header button:has-text("Sign in")')],
           ['inside its container', (p) => p.locator('[data-cy="headerAuth"]').getByRole('button')],
           ['xpath by text', (p) => p.locator('//button[normalize-space()="Sign in"]')],
+        ],
+      },
+      {
+        name: 'Main navigation Browse button',
+        strategies: [
+          ['role + name', (p) => p.getByRole('button', { name: 'Browse' })],
+          ['data-cy', (p) => p.locator('[data-cy="browseButton"]')],
+          ['id', (p) => p.locator('#browse-button')],
+          ['scoped to nav landmark', (p) => p.getByRole('navigation', { name: 'Main navigation links' }).getByRole('button')],
+          ['aria attribute', (p) => p.locator('button[aria-controls="browse-menu"]')],
+        ],
+      },
+    ],
+  },
+
+  {
+    title: 'Home page images',
+    setup: (page) => signedOut(page, '/en/gb'),
+    elements: [
+      {
+        name: 'Hero image',
+        strategies: [
+          ['alt text', (p) => p.getByAltText('Illustration of a city skyline at dusk')],
+          ['role img + name', (p) => p.getByRole('img', { name: /skyline/ })],
+          ['css class', (p) => p.locator('img.hero-image')],
+          ['css src attribute', (p) => p.locator('img[src$="hero.svg"]')],
+          ['xpath', (p) => p.locator('//section[contains(@class,"hero")]/img')],
+        ],
+      },
+      {
+        // The header logo's picture has alt="" because the text beside it already
+        // says "TradeSource": decorative images are hidden from role queries.
+        name: 'Header logo picture (decorative, alt="")',
+        strategies: [
+          ['css in logo link', (p) => p.locator('a.logo img')],
+          ['css src attribute', (p) => p.locator('header img[src$="favicon.svg"]')],
+          ['xpath', (p) => p.locator('//a[@id="site-logo"]/img')],
+        ],
+      },
+    ],
+  },
+
+  {
+    title: 'Search autocomplete (type two or more characters)',
+    setup: async (page) => {
+      await signedOut(page, '/en/gb');
+      await page.getByRole('textbox', { name: 'Search' }).fill('vor');
+    },
+    elements: [
+      {
+        name: 'Suggestions panel',
+        strategies: [
+          ['component tag', (p) => p.locator('app-autocomplete')],
+          ['data-cy', (p) => p.locator('[data-cy="autocomplete"]')],
+          ['inside the search form', (p) => p.locator('[data-cy="searchFormDesktop"] app-autocomplete')],
+        ],
+      },
+      {
+        name: 'Vortix in the Manufacturers section',
+        strategies: [
+          ['section + href (course locator)', (p) => p.locator('app-autocomplete article.manufacturers a[href*="/manufacturer/vortix/"]')],
+          ['role link in section', (p) => p.locator('article.manufacturers').getByRole('link', { name: /Vortix/ })],
+          ['filter by heading', (p) => p.locator('app-autocomplete article').filter({ has: p.getByRole('heading', { name: 'Manufacturers' }) }).getByRole('link')],
+          ['xpath', (p) => p.locator('//app-autocomplete//article[contains(@class,"manufacturers")]//a')],
+        ],
+      },
+      {
+        name: 'Product suggestions (3)',
+        count: 3,
+        strategies: [
+          ['css section', (p) => p.locator('app-autocomplete article.products a')],
+          ['role link in section', (p) => p.locator('article.products').getByRole('link')],
         ],
       },
     ],
@@ -446,6 +527,197 @@ const groups: Group[] = [
           ['filter by text', (p) => p.locator('[data-cy="resultTile"]').filter({ hasText: 'Vortix' })],
         ],
       },
+      {
+        name: 'Manufacturer logo',
+        strategies: [
+          ['alt text', (p) => p.getByAltText('Vortix logo')],
+          ['role img + name', (p) => p.getByRole('img', { name: 'Vortix logo' })],
+          ['css class', (p) => p.locator('img.tile-logo--large')],
+          ['css src attribute', (p) => p.locator('img[src*="logo-vortix"]')],
+        ],
+      },
+    ],
+  },
+
+  {
+    title: 'Manufacturer Certifications tab (data loaded from the API)',
+    setup: async (page) => {
+      await signedOut(page, MANUFACTURER_PATH.replace('/overview', '/third-party-certifications'));
+      await expect(page.locator('[data-cy="searchResultTileTitle"]').first()).toBeVisible();
+    },
+    elements: [
+      {
+        name: 'Certificate list component',
+        strategies: [
+          ['component tag', (p) => p.locator('app-certificate-list')],
+          ['data-cy', (p) => p.locator('[data-cy="resultList"]')],
+        ],
+      },
+      {
+        name: 'Results wrapper',
+        strategies: [
+          ['component tag', (p) => p.locator('app-search-result-wrapper')],
+          ['data-cy', (p) => p.locator('[data-cy="searchResultWrapper"]')],
+          ['inside the list', (p) => p.locator('app-certificate-list app-search-result-wrapper')],
+        ],
+      },
+      {
+        name: 'Certification tile titles (3)',
+        count: 3,
+        strategies: [
+          ['data-cy (course locator)', (p) => p.locator('[data-cy="searchResultTileTitle"]')],
+          ['role heading level 3', (p) => p.getByRole('heading', { level: 3 })],
+          ['css', (p) => p.locator('article.result-tile h3')],
+        ],
+      },
+      {
+        name: 'First tile',
+        strategies: [
+          ['data-cy + first()', (p) => p.locator('[data-cy="searchResultTileTitle"]').first()],
+          ['text', (p) => p.getByText('Commercial Cleaning Equipment Safety Certificate')],
+          ['filter by text', (p) => p.locator('[data-cy="searchResultTile"]').filter({ hasText: 'Safety Certificate' })],
+          ['xpath position', (p) => p.locator('(//h3[@data-cy="searchResultTileTitle"])[1]')],
+        ],
+      },
+      {
+        name: 'Type filter',
+        strategies: [
+          ['label', (p) => p.getByLabel('Type')],
+          ['role combobox', (p) => p.getByRole('combobox', { name: 'Type' })],
+          ['data-cy', (p) => p.locator('[data-cy="filterType"]')],
+          ['id', (p) => p.locator('#filter-type')],
+          ['css tag in label', (p) => p.locator('label.filter-label select')],
+        ],
+      },
+    ],
+  },
+
+  {
+    title: 'Manufacturer Case studies tab (empty state, no stubbing needed)',
+    setup: (page) => signedOut(page, MANUFACTURER_PATH.replace('/overview', '/case-studies')),
+    elements: [
+      {
+        name: 'No results panel',
+        strategies: [
+          ['component tag', (p) => p.locator('app-no-results-guidance')],
+          ['data-cy', (p) => p.locator('[data-cy="noResultsGuidance"]')],
+          ['text', (p) => p.getByText('Sorry, no results were found')],
+        ],
+      },
+      {
+        name: 'No tiles',
+        count: 0,
+        strategies: [['data-cy', (p) => p.locator('[data-cy="searchResultTileTitle"]')]],
+      },
+    ],
+  },
+
+  {
+    title: 'Halden Locks UK (the manufacturer with a CPD tab)',
+    setup: (page) => signedOut(page, '/en/gb/manufacturer/halden-locks-uk/hldtIYD2mz1WnVtvyGn/overview'),
+    elements: [
+      {
+        name: 'CPD tab (instead of Certifications)',
+        strategies: [
+          ['role + name', (p) => p.getByRole('link', { name: 'CPD', exact: true })],
+          ['data-cy', (p) => p.locator('a[data-cy="cpdTab"]')],
+          ['id', (p) => p.locator('#nav-cpd')],
+          ['css href ends-with', (p) => p.locator('a[href$="/cpd"]')],
+        ],
+      },
+      {
+        name: 'No Certifications tab',
+        count: 0,
+        strategies: [['data-cy', (p) => p.locator('a[data-cy="certificatesTab"]')]],
+      },
+      {
+        name: 'Telephone link (number written with spaces)',
+        strategies: [
+          ['css action attribute', (p) => p.locator('a[action="telephone"]')],
+          ['text', (p) => p.getByText('+44 (0)191 498 0123')],
+          ['css href', (p) => p.locator('a[href="tel:+44 (0)191 498 0123"]')],
+        ],
+      },
+    ],
+  },
+
+  {
+    title: 'Product page and breadcrumbs',
+    setup: async (page) => {
+      await signedOut(page, '/en/gb/search?q=airbar');
+      await page.getByRole('link', { name: /Vortix Airbar V Hand Dryer/ }).click();
+    },
+    elements: [
+      {
+        name: 'Product heading',
+        strategies: [
+          ['role + level', (p) => p.getByRole('heading', { name: 'Vortix Airbar V Hand Dryer', level: 1 })],
+          ['test id', (p) => p.getByTestId('product-name')],
+          ['css', (p) => p.locator('.product-header h1')],
+        ],
+      },
+      {
+        name: 'Product image',
+        strategies: [
+          ['alt text', (p) => p.getByAltText('Vortix Airbar V Hand Dryer')],
+          ['role img + name', (p) => p.getByRole('img', { name: 'Vortix Airbar V Hand Dryer' })],
+          ['css class', (p) => p.locator('img.product-image')],
+          ['css src attribute', (p) => p.locator('img[src*="product-vortix-ab-v"]')],
+        ],
+      },
+      {
+        // The breadcrumb <nav> has no aria-label, so there is no accessible name
+        // to select it by. The component tag is the stable way in.
+        name: 'Breadcrumb trail',
+        strategies: [
+          ['component tag', (p) => p.locator('app-breadcrumbs')],
+          ['data-cy', (p) => p.locator('[data-cy="breadcrumbs"]')],
+          ['css nav inside component', (p) => p.locator('app-breadcrumbs nav')],
+          ['xpath', (p) => p.locator('//app-breadcrumbs/nav/ol')],
+        ],
+      },
+      {
+        name: 'Breadcrumb links (7)',
+        count: 7,
+        strategies: [
+          ['role link inside component', (p) => p.locator('app-breadcrumbs').getByRole('link')],
+          ['css', (p) => p.locator('app-breadcrumbs li a')],
+          ['xpath', (p) => p.locator('//app-breadcrumbs//li/a')],
+        ],
+      },
+      {
+        name: 'Last breadcrumb (Hand dryers)',
+        strategies: [
+          ['role link by name', (p) => p.locator('app-breadcrumbs').getByRole('link', { name: 'Hand dryers' })],
+          ['last()', (p) => p.locator('app-breadcrumbs').getByRole('link').last()],
+          ['css last-child', (p) => p.locator('app-breadcrumbs li:last-child a')],
+          ['css href ends-with', (p) => p.locator('app-breadcrumbs a[href*="/hand-dryers/"]')],
+        ],
+      },
+      {
+        name: 'Manufacturer link',
+        strategies: [
+          ['role + name', (p) => p.getByRole('link', { name: 'Vortix', exact: true })],
+          ['data-cy', (p) => p.locator('[data-cy="productManufacturerLink"]')],
+          ['css in paragraph', (p) => p.locator('p.product-manufacturer a')],
+        ],
+      },
+      {
+        name: 'Specification rows (2)',
+        count: 2,
+        strategies: [
+          ['role row inside table', (p) => p.locator('[data-cy="specTable"]').getByRole('row')],
+          ['css', (p) => p.locator('table.spec-table tbody tr')],
+        ],
+      },
+      {
+        name: 'Specification value for "Drying time"',
+        strategies: [
+          ['row filter + cell', (p) => p.getByRole('row').filter({ hasText: 'Drying time' }).getByRole('cell')],
+          ['xpath sibling', (p) => p.locator('//th[normalize-space()="Drying time"]/following-sibling::td')],
+          ['css :has-text', (p) => p.locator('tr:has-text("Drying time") td')],
+        ],
+      },
     ],
   },
 ];
@@ -493,4 +765,33 @@ test('Example: the same journey using test ids and CSS only', async ({ page }) =
   await page.locator('#tab-manufacturers').click();
   await page.locator('a.tile--manufacturer').first().click();
   await expect(page.locator('#manufacturer-name')).toHaveText('Vortix');
+});
+
+// ---------------------------------------------------------------------------
+// Overlays: a pop-up that arrives late and blocks clicks
+// ---------------------------------------------------------------------------
+// The site shows a cookie banner, then (once that is dealt with) a "new feature"
+// pop-up, each a second or two after the page loads, with a backdrop that
+// swallows clicks. addLocatorHandler lets Playwright dismiss whichever one is in
+// the way at the moment it matters. (The other tests switch overlays off with a
+// cookie instead: tradesource_overlays=off.)
+
+test('Example: dismissing late pop-ups automatically with addLocatorHandler', async ({ page }) => {
+  await page.addLocatorHandler(page.locator('.cdk-overlay-backdrop-showing'), async () => {
+    const closeButtons = [
+      page.getByRole('button', { name: 'Accept all' }).first(),
+      page.getByRole('button', { name: 'Close dialog' }).first(),
+    ];
+    for (const button of closeButtons) {
+      if (await button.isVisible()) {
+        await button.click();
+        return;
+      }
+    }
+  });
+
+  await page.goto(BASE + '/en/gb');
+  await page.waitForTimeout(1800); // by now the cookie banner is covering the page
+  await page.getByRole('button', { name: 'Sign in' }).click(); // handler clears it, click goes ahead
+  await expect(page).toHaveURL(/\/signin/);
 });

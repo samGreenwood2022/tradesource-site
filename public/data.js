@@ -25,6 +25,7 @@ window.TRADESOURCE_DATA = {
       phoneDisplay: '08001234567',
       phoneHref: 'tel:08001234567',
       website: 'https://www.vortix-commercial.example/overview',
+      certificationBodies: ['BuildMark Assurance', 'SafeSite Standards Board'],
     },
     {
       slug: 'ferroline',
@@ -37,6 +38,7 @@ window.TRADESOURCE_DATA = {
       phoneDisplay: '08009876543',
       phoneHref: 'tel:08009876543',
       website: 'https://www.ferroline.example/overview',
+      certificationBodies: ['BuildMark Assurance', 'Fixings Quality Council'],
     },
     {
       slug: 'brightcore',
@@ -49,6 +51,8 @@ window.TRADESOURCE_DATA = {
       phoneDisplay: '08005551234',
       phoneHref: 'tel:08005551234',
       website: 'https://www.brightcore.example/overview',
+      // Brightcore shows a CPD tab instead of Certifications (like Abloy UK in the course).
+      hasCpd: true,
     },
   ],
   products: [

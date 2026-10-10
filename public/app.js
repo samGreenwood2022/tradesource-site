@@ -85,7 +85,7 @@
         tile.addEventListener('click', (e) => {
           e.preventDefault();
           const m = findManufacturer(tile.dataset.manufacturerSlug);
-          navigate(`/manufacturer/${m.slug}/${m.id}/overview`);
+          navigate(manufacturerPath(m, 'overview'));
         });
       });
     }
@@ -98,7 +98,7 @@
         <p class="result-count">${totalCount} result${totalCount === 1 ? '' : 's'} found</p>
 
         <div class="tabs" role="tablist">
-          ${TABS.map((t, i) => `<button class="tab-button${i === 0 ? ' is-active' : ''}" data-cy="tabCategory" data-tab="${t.key}">${t.label}</button>`).join('')}
+          ${TABS.map((t, i) => `<button type="button" role="tab" id="tab-${t.key}" class="tab-button${i === 0 ? ' is-active' : ''}" data-cy="tabCategory" data-testid="tab-${t.key}" data-tab="${t.key}" aria-selected="${i === 0}">${t.label}</button>`).join('')}
         </div>
 
         <div class="tiles-panel" data-tab-panel="active">
@@ -113,6 +113,7 @@
       btn.addEventListener('click', () => {
         app.querySelectorAll('.tab-button').forEach((b) => b.classList.remove('is-active'));
         btn.classList.add('is-active');
+        app.querySelectorAll('.tab-button').forEach((b) => b.setAttribute('aria-selected', String(b === btn)));
         app.querySelector('[data-tab-panel="active"]').innerHTML = panelFor(btn.dataset.tab);
         wireTileClicks();
       });
@@ -121,8 +122,8 @@
 
   function manufacturerTile(m) {
     return `
-      <a href="#" class="tile tile--manufacturer" data-cy="resultTile" data-manufacturer-slug="${m.slug}" title="View ${escapeHtml(m.name)}">
-        <span class="tile-logo" style="background:${m.color}">${escapeHtml(m.initials)}</span>
+      <a href="#" class="tile tile--manufacturer" data-cy="resultTile" data-testid="result-tile" data-manufacturer-slug="${m.slug}" title="View ${escapeHtml(m.name)}">
+        <span class="tile-logo" role="img" aria-label="${escapeHtml(m.name)}" style="background:${m.color}">${escapeHtml(m.initials)}</span>
         <span class="tile-name">${escapeHtml(m.name)}</span>
         <span class="tile-desc">${escapeHtml(m.tagline)}</span>
       </a>
@@ -132,7 +133,7 @@
   function productTile(p) {
     const manufacturer = findManufacturer(p.manufacturerSlug);
     return `
-      <a href="#" class="tile tile--product" data-cy="resultTile" title="View ${escapeHtml(p.name)}">
+      <a href="#" class="tile tile--product" data-cy="resultTile" data-testid="result-tile" title="View ${escapeHtml(p.name)}">
         <span class="tile-icon">${ICONS[p.icon] || ''}</span>
         <span class="tile-name">${escapeHtml(p.name)}</span>
         <span class="tile-manufacturer">${escapeHtml(manufacturer ? manufacturer.name : '')}</span>
@@ -141,42 +142,104 @@
     `;
   }
 
-  function renderManufacturer(slug) {
+  // Manufacturer pages live under /en/gb/manufacturer/<slug>/<id>/<section>.
+  // The bare /manufacturer/... form is still accepted, so older links keep working.
+  function manufacturerPath(m, section) {
+    return `/en/gb/manufacturer/${m.slug}/${m.id}/${section}`;
+  }
+
+  // Tab strip for a manufacturer page. Most show "Certifications"; ones flagged
+  // hasCpd show "CPD" instead, so the strip genuinely differs between pages.
+  function manufacturerSections(m) {
+    return [
+      { key: 'overview', label: 'Overview' },
+      { key: 'products', label: 'Products' },
+      m.hasCpd
+        ? { key: 'cpd', label: 'CPD', cy: 'cpdTab' }
+        : { key: 'third-party-certifications', label: 'Certifications', cy: 'certificatesTab' },
+      { key: 'literature', label: 'Literature' },
+      { key: 'case-studies', label: 'Case studies' },
+      { key: 'about', label: 'About us' },
+    ];
+  }
+
+  function renderManufacturer(slug, sectionKey) {
     const m = findManufacturer(slug);
     if (!m) {
+      document.title = 'Page not found | TradeSource';
       app.innerHTML = `<section><h1>Manufacturer not found</h1></section>`;
       return;
     }
 
+    const sections = manufacturerSections(m);
+    const current = sections.find((t) => t.key === (sectionKey || 'overview')) || sections[0];
+    document.title = `${m.name} | ${current.label} | TradeSource`;
     const ownProducts = DATA.products.filter((p) => p.manufacturerSlug === m.slug);
+
+    const nav = `
+      <nav class="manufacturer-nav" aria-label="Manufacturer navigation" data-cy="manufacturerNav">
+        <div class="mat-mdc-tab-links">
+          ${sections.map((t) => `<a href="${manufacturerPath(m, t.key)}" id="nav-${t.key}" class="mdc-tab${t === current ? ' mdc-tab--active' : ''}"${t.cy ? ` data-cy="${t.cy}"` : ''} data-testid="nav-${t.key}"${t === current ? ' aria-current="page"' : ''}>${t.label}</a>`).join('')}
+        </div>
+      </nav>
+    `;
+
+    const overview = `
+      <p class="manufacturer-about" data-testid="manufacturer-about">${escapeHtml(m.about)}</p>
+
+      ${m.certificationBodies ? `
+        <section class="certification-bodies" data-cy="certificationBodies">
+          <h2>Certification bodies</h2>
+          <ul>${m.certificationBodies.map((c) => `<li>${escapeHtml(c)}</li>`).join('')}</ul>
+        </section>
+      ` : ''}
+
+      ${ownProducts.length ? `
+        <h2>Products</h2>
+        <div class="tiles">${ownProducts.map(productTile).join('')}</div>
+      ` : ''}
+    `;
+
+    const placeholder = `
+      <section class="manufacturer-section" data-cy="sectionPlaceholder">
+        <h2>${current.label}</h2>
+        <p class="empty-state">There is no ${current.label.toLowerCase()} content for ${escapeHtml(m.name)} yet.</p>
+      </section>
+    `;
 
     app.innerHTML = `
       <section class="manufacturer-page">
-        <span class="tile-logo tile-logo--large" style="background:${m.color}">${escapeHtml(m.initials)}</span>
+        <span class="tile-logo tile-logo--large" role="img" aria-label="${escapeHtml(m.name)} logo" style="background:${m.color}">${escapeHtml(m.initials)}</span>
         <div class="brand-title-container">
-          <h1>${escapeHtml(m.name)}</h1>
+          <h1 id="manufacturer-name" data-testid="manufacturer-name">${escapeHtml(m.name)}</h1>
         </div>
-        <p>${escapeHtml(m.tagline)}</p>
+        <p class="manufacturer-tagline" data-testid="manufacturer-tagline">${escapeHtml(m.tagline)}</p>
 
         <div class="manufacturer-actions">
-          <a action="telephone" href="${m.phoneHref}">${escapeHtml(m.phoneDisplay)}</a>
+          <a action="telephone" id="manufacturer-phone" data-testid="manufacturer-phone" title="Call ${escapeHtml(m.name)}" href="${m.phoneHref}">${escapeHtml(m.phoneDisplay)}</a>
           <a
             action="company-website"
+            id="manufacturer-website"
+            data-testid="manufacturer-website"
             href="${m.website}"
             target="_blank"
             title="Visit ${m.website}"
           > Website </a>
-          <button class="contact-button" type="button"> Contact manufacturer </button>
+          <button class="contact-button" id="contact-manufacturer" data-testid="contact-manufacturer" type="button"> Contact manufacturer </button>
         </div>
 
-        <p class="manufacturer-about">${escapeHtml(m.about)}</p>
+        ${nav}
 
-        ${ownProducts.length ? `
-          <h2>Products</h2>
-          <div class="tiles">${ownProducts.map(productTile).join('')}</div>
-        ` : ''}
+        ${current.key === 'overview' ? overview : placeholder}
       </section>
     `;
+
+    app.querySelectorAll('.mat-mdc-tab-links a').forEach((link) => {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        navigate(link.getAttribute('href'));
+      });
+    });
   }
 
   // ---------------------------------------------------------------
@@ -220,26 +283,28 @@
     const session = getSession();
 
     if (!session) {
-      slot.innerHTML = '<a href="' + SIGN_IN_PATH + '" class="sign-in-button" data-cy="signInButton">Sign in</a>';
-      slot.querySelector('a').addEventListener('click', (e) => {
-        e.preventDefault();
+      // On the sign-in page the form's own "Sign in" button takes over, so the
+      // header one is removed (two buttons with the same name would be ambiguous).
+      if (window.location.pathname === SIGN_IN_PATH) {
+        slot.innerHTML = '';
+        return;
+      }
+      slot.innerHTML = '<button type="button" class="sign-in-button" id="sign-in-button" data-cy="signInButton" data-testid="sign-in-button">Sign in</button>';
+      slot.querySelector('button').addEventListener('click', () => {
         // Remember where the user was so we can send them back after sign-in.
-        const onSignIn = window.location.pathname === SIGN_IN_PATH;
-        const from = onSignIn
-          ? safeReturnUrl(new URLSearchParams(window.location.search).get('returnUrl'))
-          : window.location.pathname + window.location.search;
-        navigate(SIGN_IN_PATH + '?returnUrl=' + encodeURIComponent(from));
+        navigate(SIGN_IN_PATH + '?returnUrl=' + encodeURIComponent(window.location.pathname + window.location.search));
       });
       return;
     }
 
     const initials = ((session.firstName || '')[0] || '') + ((session.lastName || '')[0] || '');
     slot.innerHTML = `
-      <button type="button" class="avatar" data-cy="userAvatar" aria-haspopup="true" aria-expanded="false"
-        title="${escapeHtml(session.firstName + ' ' + session.lastName)}">${escapeHtml(initials.toUpperCase())}</button>
-      <div class="avatar-menu" data-cy="userMenu" hidden>
-        <p class="avatar-menu-email" data-cy="userEmail">${escapeHtml(session.email)}</p>
-        <button type="button" data-cy="signOutButton">Sign out</button>
+      <button type="button" class="avatar" id="user-menu-button" data-cy="userAvatar" data-testid="user-menu-button" aria-label="Open user menu" aria-haspopup="true" aria-expanded="false">
+        <span class="avatar-initials" role="figure" data-testid="user-initials">${escapeHtml(initials.toUpperCase())}</span>
+      </button>
+      <div class="avatar-menu" id="user-menu" data-cy="userMenu" data-testid="user-menu" hidden>
+        <p class="avatar-menu-email" data-cy="userEmail" data-testid="user-email">${escapeHtml(session.email)}</p>
+        <button type="button" id="sign-out-button" data-cy="signOutButton" data-testid="sign-out-button">Sign out</button>
       </div>
     `;
     const avatar = slot.querySelector('[data-cy="userAvatar"]');
@@ -250,8 +315,6 @@
     });
     slot.querySelector('[data-cy="signOutButton"]').addEventListener('click', () => {
       clearSession();
-      renderAuth();
-      // Stay on the current page, unless it is one that needs the user's session.
       render(window.location.pathname, window.location.search);
     });
   }
@@ -275,9 +338,9 @@
           <h1>Sign in</h1>
           <form class="sign-in-form" data-cy="signInEmailForm" novalidate>
             <label for="signInEmail">Email address</label>
-            <input type="email" id="signInEmail" name="email" data-cy="signInEmail" autocomplete="username" value="${escapeHtml(email)}" />
-            <p class="form-error" data-cy="signInError" role="alert" hidden></p>
-            <button type="submit" class="primary-button" data-cy="signInNext">Next</button>
+            <input type="email" id="signInEmail" name="email" data-cy="signInEmail" data-testid="sign-in-email" autocomplete="username" value="${escapeHtml(email)}" />
+            <p class="form-error" data-cy="signInError" data-testid="sign-in-error" role="alert" hidden></p>
+            <button type="submit" class="primary-button" id="sign-in-next" data-cy="signInNext" data-testid="sign-in-next">Next</button>
           </form>
         </section>
       `;
@@ -308,10 +371,10 @@
           <p class="sign-in-email" data-cy="signInEmailDisplay">${escapeHtml(email)}</p>
           <form class="sign-in-form" data-cy="signInPasswordForm" novalidate>
             <label for="signInPassword">Password</label>
-            <input type="password" id="signInPassword" name="password" data-cy="signInPassword" autocomplete="current-password" />
-            <p class="form-error" data-cy="signInError" role="alert" hidden></p>
-            <button type="submit" class="primary-button" data-cy="signInSubmit">Sign in</button>
-            <button type="button" class="link-button" data-cy="signInBack">Use a different email</button>
+            <input type="password" id="signInPassword" name="password" data-cy="signInPassword" data-testid="sign-in-password" autocomplete="current-password" />
+            <p class="form-error" data-cy="signInError" data-testid="sign-in-error" role="alert" hidden></p>
+            <button type="submit" class="primary-button" id="sign-in-submit" data-cy="signInSubmit" data-testid="sign-in-submit">Sign in</button>
+            <button type="button" class="link-button" id="sign-in-back" data-cy="signInBack" data-testid="sign-in-back">Use a different email</button>
           </form>
         </section>
       `;
@@ -351,22 +414,26 @@
   // ---------------------------------------------------------------
 
   function render(pathname, search) {
+    document.title = 'TradeSource';
+    renderAuth();
     if (pathname === '/en/gb') {
       renderHome();
       return;
     }
     if (pathname === '/en/gb/search') {
       const params = new URLSearchParams(search);
+      document.title = `${params.get('q') || ''} | Search | TradeSource`;
       renderSearch(params.get('q'));
       return;
     }
     if (pathname === SIGN_IN_PATH) {
+      document.title = 'Sign in | TradeSource';
       renderSignIn(search);
       return;
     }
-    const manufacturerMatch = pathname.match(/^\/manufacturer\/([^/]+)\/[^/]+\/overview$/);
+    const manufacturerMatch = pathname.match(/^(?:\/en\/gb)?\/manufacturer\/([^/]+)\/[^/]+\/([^/]+)$/);
     if (manufacturerMatch) {
-      renderManufacturer(manufacturerMatch[1]);
+      renderManufacturer(manufacturerMatch[1], manufacturerMatch[2]);
       return;
     }
     app.innerHTML = `<section><h1>Page not found</h1></section>`;
@@ -385,12 +452,11 @@
   // Wire up both search boxes (desktop always visible, mobile hidden
   // behind the nav toggle) — deliberately two so cy.get(...).filter(':visible')
   // has a real reason to exist.
-  document.querySelectorAll('[data-cy="searchFieldSearch"]').forEach((input) => {
-    input.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        navigate(`/en/gb/search?q=${encodeURIComponent(input.value)}`);
-      }
+  document.querySelectorAll('.search-form').forEach((form) => {
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const input = form.querySelector('[data-cy="searchFieldSearch"]');
+      navigate(`/en/gb/search?q=${encodeURIComponent(input.value)}`);
     });
   });
 

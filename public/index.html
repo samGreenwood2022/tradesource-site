@@ -8,30 +8,40 @@
 </head>
 <body>
   <header class="site-header">
-    <a href="/en/gb" class="logo" data-cy="logoHome">TradeSource</a>
+    <a href="/en/gb" class="logo" id="site-logo" data-cy="logoHome" data-testid="logo-home" title="TradeSource home">TradeSource</a>
 
-    <form class="search-form search-form--desktop" data-cy="searchFormDesktop">
+    <button type="button" class="locale-button" id="locale-button" data-cy="localeButton" data-testid="locale-button" aria-label="Choose location and language"><span>UK</span></button>
+
+    <form class="search-form search-form--desktop" data-cy="searchFormDesktop" role="search">
       <input
         type="text"
+        id="search-desktop"
+        name="q"
         class="search-field"
         data-cy="searchFieldSearch"
-        placeholder="Search products or manufacturers"
+        data-testid="search-input"
+        placeholder="Search TradeSource..."
         aria-label="Search products or manufacturers"
       />
+      <button type="submit" class="search-button" id="search-button-desktop" data-cy="searchButton" data-testid="search-button" aria-label="Search" title="Search">&#128269;</button>
     </form>
 
-    <div class="header-auth" data-cy="headerAuth"></div>
+    <div class="header-auth" id="header-auth" data-cy="headerAuth"></div>
 
-    <button class="nav-toggle" data-cy="navToggle" aria-label="Menu">&#9776;</button>
+    <button class="nav-toggle" id="nav-toggle" data-cy="navToggle" data-testid="nav-toggle" aria-label="Menu">&#9776;</button>
 
-    <form class="search-form search-form--mobile" data-cy="searchFormMobile" hidden>
+    <form class="search-form search-form--mobile" data-cy="searchFormMobile" role="search" hidden>
       <input
         type="text"
+        id="search-mobile"
+        name="q"
         class="search-field"
         data-cy="searchFieldSearch"
-        placeholder="Search products or manufacturers"
+        data-testid="search-input"
+        placeholder="Search TradeSource..."
         aria-label="Search products or manufacturers"
       />
+      <button type="submit" class="search-button" id="search-button-mobile" data-cy="searchButton" data-testid="search-button" aria-label="Search" title="Search">&#128269;</button>
     </form>
   </header>
 

@@ -71,6 +71,19 @@ authentication.
 | Avatar / menu          | `[data-cy="userAvatar"]` / `[data-cy="userMenu"]` |
 | Sign out               | `[data-cy="signOutButton"]`      |
 
+## Locators
+
+Every key element has several locator options (role, label, placeholder, title,
+`data-cy`, `data-testid`, id, name, class, CSS, XPath). See [`LOCATORS.md`](LOCATORS.md) for
+the guide and [`examples/locator-examples.spec.ts`](examples/locator-examples.spec.ts) for a
+runnable catalogue (needs `@playwright/test`; run with the site on port 4321).
+
+Manufacturer pages now live at `/en/gb/manufacturer/<slug>/<id>/<section>` (the older
+`/manufacturer/<slug>/<id>/overview` form still works), with a tab strip: Overview, Products,
+Certifications (or **CPD** for Brightcore), Literature, Case studies and About us. Page titles
+follow `<Manufacturer> | <Section> | TradeSource`. The header also has a "Choose location and
+language" button (shows "UK") and a search button.
+
 ## Mapping from the old NBS Source course content
 
 | Old (NBS Source)                                              | New (TradeSource)                                      |

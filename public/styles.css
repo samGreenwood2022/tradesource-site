@@ -249,6 +249,43 @@ body {
   padding: 0.25rem;
 }
 
+/* Header: locale + search button */
+.locale-button {
+  padding: 0.35rem 0.6rem;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 4px;
+  background: none;
+  color: #fff;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.search-form { display: flex; gap: 0.5rem; }
+.search-button {
+  padding: 0.4rem 0.7rem;
+  border: none;
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.avatar-initials { pointer-events: none; }
+
+/* Manufacturer tab strip */
+.manufacturer-nav { margin-top: 1.5rem; border-bottom: 1px solid #ddd; }
+.mat-mdc-tab-links { display: flex; gap: 0.25rem; flex-wrap: wrap; }
+.mat-mdc-tab-links a {
+  padding: 0.6rem 1rem;
+  border-bottom: 2px solid transparent;
+  color: #333;
+  text-decoration: none;
+}
+.mat-mdc-tab-links a:hover { background: #f0f0f0; }
+.mat-mdc-tab-links a.mdc-tab--active { border-bottom-color: #0b3d2e; font-weight: 600; }
+
+.certification-bodies { margin-top: 1.5rem; }
+.certification-bodies h2 { margin-bottom: 0.25rem; }
+
 @media (max-width: 640px) {
   .search-form--desktop { display: none; }
   .nav-toggle { display: block; }

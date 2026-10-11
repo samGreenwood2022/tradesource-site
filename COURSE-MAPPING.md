@@ -1,22 +1,23 @@
-# Mapping the NBS Source course tests to TradeSource
+# Course notes for TradeSource
 
-Everything below is fictional. Use this when you port a test from the NBS Source course
-(Cypress or Playwright) to the training site.
+Everything below is fictional. Use this when you write or port a course test (Cypress or
+Playwright) against the training site. The Cypress framework that runs against it lives in
+[TradeSource-Cypress](https://github.com/samGreenwood2022/TradeSource-Cypress/).
 
 ## Basics
 
-| NBS Source | TradeSource |
+| Item | TradeSource |
 |---|---|
-| `https://source.thenbs.com` | `http://localhost:4321` (`npm start`) |
-| Home `/en/gb` | `/en/gb` |
-| Dyson manufacturer | **Vortix** (`/en/gb/manufacturer/vortix/vtxA1B2C3D4E5F6G7H8/overview`) |
-| Abloy UK manufacturer (has a **CPD** tab) | **Halden Locks UK** (`/en/gb/manufacturer/halden-locks-uk/hldtIYD2mz1WnVtvyGn/overview`) |
-| Dyson Airblade 9kJ Hand Dryer (HU03) | **Vortix Airbar V Hand Dryer** |
-| Dyson phone `08003457788` | Vortix `08001234567` |
-| Abloy phone `+44 (0)1902 364500` (href `tel:+44 (0)1902 364500`) | Halden `+44 (0)191 498 0123` (href `tel:+44 (0)191 498 0123`). The spaces in the href are deliberate, as on the NBS page |
-| Title `Dyson \| Overview \| BIM Library` | `Vortix \| Overview \| TradeSource` |
-| Dyson website `https://www.dyson.co.uk/commercial/overview` | `https://www.vortix-commercial.example/overview` |
-| Tagline "Technology for business" | "Commercial cleaning equipment, built for daily use" |
+| Base URL | `http://localhost:4321` (`npm start`) |
+| Home | `/en/gb` |
+| Manufacturer | **Vortix** (`/en/gb/manufacturer/vortix/vtxA1B2C3D4E5F6G7H8/overview`) |
+| Manufacturer with a **CPD** tab | **Halden Locks UK** (`/en/gb/manufacturer/halden-locks-uk/hldtIYD2mz1WnVtvyGn/overview`) |
+| Product | **Vortix Airbar V Hand Dryer** |
+| Vortix phone | `08001234567` |
+| Halden phone | `+44 (0)191 498 0123` (href `tel:+44 (0)191 498 0123`). The spaces in the href are deliberate |
+| Page title | `Vortix \| Overview \| TradeSource` |
+| Vortix website | `https://www.vortix-commercial.example/overview` |
+| Vortix tagline | "Commercial cleaning equipment, built for daily use" |
 
 Manufacturer tab hrefs follow `/en/gb/manufacturer/<slug>/<id>/<section>` with sections
 `overview`, `products`, `third-party-certifications` (or `cpd`), `literature`, `case-studies`, `about`.
@@ -25,7 +26,7 @@ Manufacturer tab hrefs follow `/en/gb/manufacturer/<slug>/<id>/<section>` with s
 
 Product URL: `/en/gb/product/vortix-ab-v/TEnfYYR0sgglYs7gmQOCzL/zdp7Odro0hT6MHVuk0hIvF`
 
-Breadcrumb trail (seven links, in `<app-breadcrumbs>`; the `<nav>` has no accessible name, as on NBS):
+Breadcrumb trail (seven links, in `<app-breadcrumbs>`; the `<nav>` has no accessible name, deliberately):
 
 | text | href |
 |---|---|
@@ -39,19 +40,15 @@ Breadcrumb trail (seven links, in `<app-breadcrumbs>`; the `<nav>` has no access
 
 ## Certifications tab and network stubs
 
-The tab loads its data with real requests to **`POST /api/graphql`**, which plays the part of
-`api.source.thenbs.com/graphql`. As in the course, requests are batched (the body and the response
+The tab loads its data with real requests to **`POST /api/graphql`**, which stands in for the
+site's GraphQL API. As in the course, requests are batched (the body and the response
 are **arrays**), and two requests share the operation name `certifications`: one for the filter
 options and one for the result tiles. Only the tiles request mentions `paginatedResponse`, and its
 response has `data.certifications.byBrandId.paginatedResponse.items[].name` and `.totalItems`.
 
-So the course's `stubCertifications()` needs only the URL changed:
+So a `stubCertifications()` helper only needs to intercept this URL:
 
 ```ts
-// NBS Source
-await page.route("**/api.source.thenbs.com/graphql", ...)
-resp.url().includes("api.source.thenbs.com/graphql")
-// TradeSource
 await page.route("**/api/graphql", ...)
 resp.url().includes("/api/graphql")
 ```
@@ -76,7 +73,7 @@ Set `API_DELAY_MS=0` (or a larger number) when starting the server to change the
 A cookie banner (button **Accept all**) appears about a second after load. Once it is dealt with, a
 "new feature" dialog (button **Close dialog**) follows. Both sit behind a
 `.cdk-overlay-backdrop-showing` backdrop with `aria-modal="false"`, so the page behind stays
-"visible" but clicks fail, as on NBS. Your `dismissOverlaysAutomatically` handler works unchanged.
+"visible" but clicks fail. Your `dismissOverlaysAutomatically` handler works unchanged.
 
 Choices are remembered (cookie `tradesource_consent`, localStorage `tradesource.newFeatureSeen`), and
 Cypress/Playwright clear those between tests, so the pop-ups come back each time. To switch them

@@ -1,6 +1,6 @@
 name: Site regression tests
 
-# Runs the POM regression spec from the TradeSource-Cypress repo against the code in each pull request.
+# Runs the feature files (cypress/e2e/features/*.feature) from the TradeSource-Cypress repo against the code in each pull request.
 # To block merging when it fails: add "Site regression tests / regression" as a required status check
 # in the branch protection rule (or ruleset) for master.
 on:
@@ -42,14 +42,14 @@ jobs:
           cache: npm
           cache-dependency-path: tests/package-lock.json
 
-      # 3. Install the tests, start the site from this PR, wait for it, run only the POM spec
+      # 3. Install the tests, start the site from this PR, wait for it, run only the feature files
       - name: Run Cypress
         uses: cypress-io/github-action@v6
         with:
           working-directory: tests
           start: npm start --prefix ${{ github.workspace }}/site
           wait-on: 'http://localhost:4321'
-          spec: cypress/e2e/regression-tests-pom.cy.ts
+          spec: cypress/e2e/features/*.feature
           # Only send results to Cypress Cloud when the key is available (it is not for PRs from forks)
           record: ${{ secrets.CYPRESS_RECORD_KEY != '' }}
         env:

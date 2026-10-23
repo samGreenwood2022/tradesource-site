@@ -26,9 +26,11 @@ use a different port). Use `http://localhost:4321` as your Cypress `baseUrl`.
 
 ## What it supports
 
-- **Home page** at `/en/gb` with a search box (two, actually — a visible
-  desktop one and a hidden mobile one behind the menu button, so
-  `.filter(':visible')` has a genuine job to do).
+- **Home page** at `/en/gb` with two identical search fields, like NBS
+  Source: one in the hero and one in the header. Only one is visible at a
+  time (hero on screens wider than 640px, header on narrower ones), so
+  `.filter(':visible')` has a genuine job to do. Every other page has just
+  the header search field.
 - **Search results** at `/en/gb/search?q=<term>`, with three tabs — All,
   Manufacturers, Products — each tagged `data-cy="tabCategory"`.
 - **Manufacturer pages** at `/manufacturer/<slug>/<id>/overview`, each with
@@ -74,8 +76,9 @@ authentication.
 
 ## What's on the site
 
-- **Home** `/en/gb`: hero banner and four lazy-loaded, rotating sections (sponsored brands / products / CPD and an inspiration grid).
-- **Header (every page):** logo, "Choose location and language" (UK), search box (desktop + hidden mobile copy) with autocomplete suggestions, search button, **Sign in** button (or avatar when signed in), plus a **Browse** menu of categories.
+- **Home** `/en/gb`: hero banner with its own search field, and four lazy-loaded, rotating sections (sponsored brands / products / CPD and an inspiration grid).
+- **Two search fields on the homepage only** (copying NBS Source): the hero field (`app-search-bar[data-cy="homepageSearch"]`) and the header field (`app-search-bar[data-cy="headerSearch"]`). The inputs are identical apart from their ids (`search-input-0` header, `search-input-1` hero). Above 640px wide the hero field shows and the header field has `visibility: hidden`; at 640px and below the hero field has `display: none` and the header field shows. On every other page the header field is the only one and is always visible.
+- **Header (every page):** logo, "Choose location and language" (UK), search field with autocomplete suggestions, search button, **Sign in** button (or avatar when signed in), plus a **Browse** menu of categories.
 - **Search** `/en/gb/search?q=<term>`: tabs for Products, Manufacturers, CPD, Literature and Case studies.
 - **Manufacturer pages** `/en/gb/manufacturer/<slug>/<id>/<section>`: tab strip, telephone and website links, "Contact manufacturer", async "Certification bodies", and tabs backed by the fictional API. Four manufacturers: Vortix, Ferroline, Brightcore and Halden Locks UK (which has a **CPD** tab instead of Certifications).
 - **Location and language selector:** the header "UK" button opens a "Choose your location and language" panel (custom comboboxes for Location: UK, Canada, United States, Ireland; Language: English, plus Français for Canada). Saving a different country shows a "Confirm region change" dialog (**Remain in United Kingdom** / **Change to Canada**); confirming goes to the homepage and shows a "You are viewing content for Canada." reminder banner at the bottom (country dropdown, **Continue**, dismiss). The detected country is fixed at the UK; the choice is kept in `localStorage` (`tradesource.region`) and the banner's dismissal in `sessionStorage`.

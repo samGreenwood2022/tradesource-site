@@ -13,37 +13,11 @@
 
     <button type="button" class="locale-button" id="locale-button" data-cy="localeButton" data-testid="locale-button" aria-label="Choose location and language"><span>UK</span></button>
 
-    <form class="search-form search-form--desktop" data-cy="searchFormDesktop" role="search">
-      <input
-        type="text"
-        id="search-desktop"
-        name="q"
-        class="search-field"
-        data-cy="searchFieldSearch"
-        data-testid="search-input"
-        placeholder="Search TradeSource..."
-        aria-label="Search products or manufacturers"
-      />
-      <button type="submit" class="search-button" id="search-button-desktop" data-cy="searchButton" data-testid="search-button" aria-label="Search" title="Search">&#128269;</button>
-    </form>
+    <!-- Header search. app.js fills it from the same template as the homepage
+         hero search, so the two fields always have identical attributes. -->
+    <app-search-bar class="header-search-bar" data-cy="headerSearch"></app-search-bar>
 
     <div class="header-auth" id="header-auth" data-cy="headerAuth"></div>
-
-    <button class="nav-toggle" id="nav-toggle" data-cy="navToggle" data-testid="nav-toggle" aria-label="Menu">&#9776;</button>
-
-    <form class="search-form search-form--mobile" data-cy="searchFormMobile" role="search" hidden>
-      <input
-        type="text"
-        id="search-mobile"
-        name="q"
-        class="search-field"
-        data-cy="searchFieldSearch"
-        data-testid="search-input"
-        placeholder="Search TradeSource..."
-        aria-label="Search products or manufacturers"
-      />
-      <button type="submit" class="search-button" id="search-button-mobile" data-cy="searchButton" data-testid="search-button" aria-label="Search" title="Search">&#128269;</button>
-    </form>
   </header>
 
   <div class="main-nav-bar">

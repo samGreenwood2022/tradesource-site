@@ -88,6 +88,12 @@ await context.addCookies([{ name: 'tradesource_overlays', value: 'off', url: bas
 
 ## Search
 
+Like NBS Source, the homepage has two identical search fields (hero and header) and shows
+only one, depending on screen width; every other page has one. A test that targets
+`[data-cy="searchFieldSearch"]` on the homepage therefore matches two elements, and has to
+pick the visible one (`.filter(':visible')` in Cypress, `.filter({ visible: true })` in
+Playwright). See `LOCATORS.md` for the details.
+
 Typing two or more characters opens `<app-autocomplete>` with a Manufacturers section and a
 Products section (`app-autocomplete article.manufacturers a[href*="/manufacturer/vortix/"]`).
 It closes on Enter, Escape, a click elsewhere or navigation. The search results tabs are

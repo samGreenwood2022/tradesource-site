@@ -42,23 +42,37 @@ jobs:
           cache: npm
           cache-dependency-path: tests/package-lock.json
 
-      # 3. Install the tests, start the site from this PR, wait for it, run only the feature files
+      # 3. Start the site from this PR and wait until it answers. Uses 127.0.0.1
+      # rather than localhost: on newer runners localhost can resolve to IPv6
+      # (::1) first, and the old wait-on check failed with "Socket closed before
+      # the connection was established". If the site doesn't start, its log is printed.
+      - name: Start site
+        run: |
+          nohup npm start --prefix site > site.log 2>&1 &
+          if ! curl --silent --show-error --fail --retry 30 --retry-delay 1 --retry-all-errors --output /dev/null http://127.0.0.1:4321; then
+            echo "The site did not start. Its log:"
+            cat site.log
+            exit 1
+          fi
+          echo "Site is up"
+
+      # 4. Install the tests and run only the feature files against the running site
       - name: Run Cypress
         uses: cypress-io/github-action@v6
         with:
           working-directory: tests
-          start: npm start --prefix ${{ github.workspace }}/site
-          wait-on: 'http://localhost:4321'
           spec: cypress/e2e/features/*.feature
           # Only send results to Cypress Cloud when the key is available (it is not for PRs from forks)
           record: ${{ secrets.CYPRESS_RECORD_KEY != '' }}
         env:
           CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
+          # Overrides the tests' baseUrl (localhost) for the same IPv6 reason as above
+          CYPRESS_BASE_URL: http://127.0.0.1:4321
           # Fictional test sign-in, published in this repo's docs, so no secrets are needed
           EMAIL: test.user@tradesource.example
           PASSWORD: Password123!
 
-      # 4. Always upload the report, even when tests fail (failure screenshots are embedded in it)
+      # 5. Always upload the report, even when tests fail (failure screenshots are embedded in it)
       - name: Upload HTML report
         if: always()
         uses: actions/upload-artifact@v4
@@ -68,7 +82,7 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
-      # 5. Screenshots and visual diff images, for investigating visual failures
+      # 6. Screenshots and visual diff images, for investigating visual failures
       - name: Upload screenshots and visual diffs
         if: always()
         uses: actions/upload-artifact@v4

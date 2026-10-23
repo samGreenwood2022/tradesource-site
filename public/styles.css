@@ -52,6 +52,9 @@ app-search-bar { display: block; }
    Every other page has just the header field, visible at all sizes. */
 @media (min-width: 641px) {
   body.is-home .header-search-bar { visibility: hidden; }
+  /* A taller hero leaves clear sky between the hero search and the skyline
+     (the artwork scales with the height, so the buildings move down). */
+  .hero .hero-image { height: 340px; }
 }
 @media (max-width: 640px) {
   .home-page-search-bar { display: none; }

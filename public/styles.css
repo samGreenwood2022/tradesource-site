@@ -28,8 +28,8 @@ body {
 .logo img { border-radius: 8px; }
 .logo-text strong { font-weight: 800; color: #5eead4; }
 
-.search-form { flex: 1; }
-.search-form--mobile[hidden] { display: none; }
+app-search-bar { display: block; }
+.header-search-bar { flex: 1; }
 
 .search-field {
   width: 100%;
@@ -39,13 +39,29 @@ body {
   border: none;
 }
 
-.nav-toggle {
-  display: none;
-  background: none;
-  border: none;
-  color: #fff;
-  font-size: 1.5rem;
-  cursor: pointer;
+/* Homepage hero search: a larger copy of the header search */
+.home-page-search-bar { margin-top: 1.1rem; text-shadow: none; }
+.home-page-search-bar .search-form { max-width: 480px; }
+.home-page-search-bar .search-field { max-width: none; padding: 0.7rem 0.9rem; font-size: 1rem; border: 2px solid #99f6e4; }
+.home-page-search-bar .search-button { padding: 0 0.9rem; background: #0f766e; color: #fff; }
+
+/* Two search fields, one visible at a time (mirrors NBS Source).
+   Only the homepage has the hero copy. On wide screens the header copy is
+   hidden with visibility: hidden (it keeps its space, so the header does not
+   shift); on narrow screens the hero copy is removed with display: none.
+   Every other page has just the header field, visible at all sizes. */
+@media (min-width: 641px) {
+  body.is-home .header-search-bar { visibility: hidden; }
+  /* A taller hero leaves clear sky between the hero search and the skyline
+     (the artwork scales with the height, so the buildings move down). */
+  .hero .hero-image { height: 340px; }
+}
+@media (max-width: 640px) {
+  .home-page-search-bar { display: none; }
+  /* Phones: the header search takes its own full-width row under the logo. */
+  .site-header { flex-wrap: wrap; row-gap: 0.75rem; }
+  .header-search-bar { order: 3; flex-basis: 100%; }
+  .header-search-bar .search-field { max-width: none; }
 }
 
 #app {
@@ -469,8 +485,6 @@ img.tile-logo { display: block; border-radius: 12px; background: none; object-fi
   .hero-text h1 { font-size: 1.4rem; }
   .product-header { flex-direction: column; }
   .product-image { width: 100%; }
-  .search-form--desktop { display: none; }
-  .nav-toggle { display: block; }
 }
 
 /* Contact manufacturer modal */

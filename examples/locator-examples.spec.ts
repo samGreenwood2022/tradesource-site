@@ -98,33 +98,36 @@ const groups: Group[] = [
         ],
       },
       {
-        name: 'Search field (desktop copy)',
+        name: 'Search field (the visible copy)',
         strategies: [
           ['role + name', (p) => p.getByRole('textbox', { name: 'Search' })],
-          // The page has a hidden mobile copy of the search box too. Role-based locators
-          // ignore hidden elements automatically; placeholder/label/test id do not, so
-          // those need .filter({ visible: true }).
+          // The homepage has two identical search fields, as on NBS Source: the hero one
+          // (visible on wide screens) and the header one (visible on narrow screens).
+          // Role-based locators ignore the hidden one automatically; placeholder, label,
+          // test id and data-cy do not, so those need .filter({ visible: true }).
           ['placeholder (visible copy)', (p) => p.getByPlaceholder('Search TradeSource...').filter({ visible: true })],
           ['label (visible copy)', (p) => p.getByLabel('Search products or manufacturers').filter({ visible: true })],
           ['test id (visible copy)', (p) => p.getByTestId('search-input').filter({ visible: true })],
           ['data-cy (visible copy)', (p) => p.locator('[data-cy="searchFieldSearch"]').filter({ visible: true })],
-          ['id', (p) => p.locator('#search-desktop')],
+          // Ids differ but don't say which copy is which: at desktop width on the
+          // homepage the visible one is search-input-1 (hero), elsewhere search-input-0.
+          ['id', (p) => p.locator('#search-input-1')],
           ['name attribute', (p) => p.locator('input[name="q"]').filter({ visible: true })],
           ['css class + type', (p) => p.locator('input.search-field[type="text"]').filter({ visible: true })],
-          ['scoped to the form', (p) => p.locator('[data-cy="searchFormDesktop"]').getByRole('textbox')],
-          ['xpath', (p) => p.locator('//form[@data-cy="searchFormDesktop"]//input')],
+          ['scoped to the hero search', (p) => p.locator('[data-cy="homepageSearch"]').getByRole('textbox')],
+          ['xpath', (p) => p.locator('//app-search-bar[@data-cy="homepageSearch"]//input')],
         ],
       },
       {
-        name: 'Search button (desktop copy)',
+        name: 'Search button (the visible copy)',
         strategies: [
           ['role + name', (p) => p.getByRole('button', { name: 'Search' })],
           ['title', (p) => p.getByTitle('Search').filter({ visible: true })],
           ['test id (visible copy)', (p) => p.getByTestId('search-button').filter({ visible: true })],
           ['data-cy (visible copy)', (p) => p.locator('[data-cy="searchButton"]').filter({ visible: true })],
-          ['id', (p) => p.locator('#search-button-desktop')],
+          ['id', (p) => p.locator('#search-button-1')],
           ['css attribute', (p) => p.locator('button[type="submit"][aria-label="Search"]').filter({ visible: true })],
-          ['xpath', (p) => p.locator('//form[@data-cy="searchFormDesktop"]//button')],
+          ['xpath', (p) => p.locator('//app-search-bar[@data-cy="homepageSearch"]//button')],
         ],
       },
       {
@@ -193,7 +196,7 @@ const groups: Group[] = [
         strategies: [
           ['component tag', (p) => p.locator('app-autocomplete')],
           ['data-cy', (p) => p.locator('[data-cy="autocomplete"]')],
-          ['inside the search form', (p) => p.locator('[data-cy="searchFormDesktop"] app-autocomplete')],
+          ['inside the hero search', (p) => p.locator('[data-cy="homepageSearch"] app-autocomplete')],
         ],
       },
       {
@@ -760,8 +763,8 @@ test('Example: search then open a manufacturer using role-based locators', async
 
 test('Example: the same journey using test ids and CSS only', async ({ page }) => {
   await signedOut(page, '/en/gb');
-  await page.locator('#search-desktop').fill('vortix');
-  await page.locator('#search-button-desktop').click();
+  await page.locator('#search-input-1').fill('vortix');
+  await page.locator('#search-button-1').click();
   await page.locator('#tab-manufacturers').click();
   await page.locator('a.tile--manufacturer').first().click();
   await expect(page.locator('#manufacturer-name')).toHaveText('Vortix');

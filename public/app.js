@@ -120,13 +120,39 @@
     },
   };
 
+  // One template for every search field, so the header and homepage copies
+  // match attribute for attribute. Only the id differs (ids must be unique),
+  // and it says nothing about which copy is which, like NBS's mat-input-0/1.
+  function searchFormHtml(index) {
+    return `
+      <form class="search-form" role="search" data-cy="searchForm">
+        <input
+          type="text"
+          id="search-input-${index}"
+          name="q"
+          class="search-field"
+          data-cy="searchFieldSearch"
+          data-testid="search-input"
+          placeholder="Search TradeSource..."
+          aria-label="Search products or manufacturers"
+          autocomplete="off"
+        />
+        <button type="submit" class="search-button" id="search-button-${index}" data-cy="searchButton" data-testid="search-button" aria-label="Search" title="Search">&#128269;</button>
+      </form>`;
+  }
+
   function renderHome() {
+    // The homepage has a second search field in the hero, as on NBS Source.
+    // Wide screens show this one and hide the header copy (visibility: hidden);
+    // narrow screens hide this one (display: none) and show the header copy.
+    // See the "Two search fields" rules in styles.css.
     app.innerHTML = `
       <section class="hero">
         <img class="hero-image" src="/images/hero.svg" alt="Illustration of a city skyline at dusk" width="1200" height="320" />
         <div class="hero-text">
           <h1>Find trade products and manufacturers</h1>
           <p>Search TradeSource's fictional catalogue of manufacturers and products, used for automation-testing practice.</p>
+          <app-search-bar class="home-page-search-bar" data-cy="homepageSearch">${searchFormHtml(1)}</app-search-bar>
         </div>
       </section>
       ${Object.keys(HOME_SECTIONS).map((key) => `<div class="lazy-region" data-lazy="${key}"></div>`).join('')}
@@ -907,6 +933,8 @@
 
     document.title = 'TradeSource';
     renderAuth();
+    // Drives which search field is visible (see renderHome).
+    document.body.classList.toggle('is-home', pathname === '/en/gb');
 
     if (pathname === '/en/gb') {
       renderHome();
@@ -981,22 +1009,21 @@
     if (e.key === 'Escape') closeAutocomplete();
   });
 
-  // Wire up both search boxes (desktop always visible, mobile hidden
-  // behind the nav toggle) — deliberately two so cy.get(...).filter(':visible')
-  // has a real reason to exist.
-  document.querySelectorAll('.search-form').forEach((form) => {
-    const input = form.querySelector('[data-cy="searchFieldSearch"]');
-    input.addEventListener('input', () => updateAutocomplete(form, input.value));
-    form.addEventListener('submit', (e) => {
-      e.preventDefault();
-      closeAutocomplete();
-      navigate(`/en/gb/search?q=${encodeURIComponent(input.value)}`);
-    });
+  // Search fields. Listeners sit on the document because the homepage hero
+  // field is re-rendered on every visit to the homepage.
+  document.querySelector('[data-cy="headerSearch"]').innerHTML = searchFormHtml(0);
+
+  document.addEventListener('input', (e) => {
+    const input = e.target.closest && e.target.closest('[data-cy="searchFieldSearch"]');
+    if (input) updateAutocomplete(input.form, input.value);
   });
 
-  document.querySelector('[data-cy="navToggle"]').addEventListener('click', () => {
-    const mobileForm = document.querySelector('[data-cy="searchFormMobile"]');
-    mobileForm.hidden = !mobileForm.hidden;
+  document.addEventListener('submit', (e) => {
+    const form = e.target;
+    if (!form.matches('form.search-form')) return;
+    e.preventDefault();
+    closeAutocomplete();
+    navigate(`/en/gb/search?q=${encodeURIComponent(form.elements.q.value)}`);
   });
 
   // ---------------------------------------------------------------

@@ -45,9 +45,9 @@
     return `<app-breadcrumbs data-cy="breadcrumbs"><nav><ol>${items}</ol></nav></app-breadcrumbs>`;
   }
 
-  // "X of Y" line shown under every list outside the homepage.
+  // "X of Y" line shown under every set of tiles outside the homepage.
   // Every count has the same data-cy / data-testid, and data-count-of says which
-  // list it belongs to (a page can have two). data-shown / data-total hold the
+  // tiles it counts. data-shown / data-total hold the
   // bare numbers so tests can compare them with an API response without
   // parsing the text.
   function itemCountHtml(countOf, shown, total, { live = false } = {}) {
@@ -276,7 +276,6 @@
         <ul class="link-list">
           <li><a href="/en/gb/categories/catalogue" data-spa data-cy="categoryLink">Catalogue</a></li>
         </ul>
-        ${itemCountHtml('categories', 1, 1)}
       </section>`;
   }
 
@@ -316,8 +315,7 @@
           <h2>Subcategories</h2>
           <ul class="link-list">
             ${node.children.map((c) => `<li><a href="${TS.categoryPath(chain.concat(c))}" data-spa data-cy="categoryLink">${escapeHtml(c.name)}</a></li>`).join('')}
-          </ul>
-          ${itemCountHtml('subcategories', node.children.length, node.children.length)}` : ''}
+          </ul>` : ''}
         <h2>Products</h2>
         ${products.length
           ? `<div class="tiles">${products.map(productTile).join('')}</div>`
@@ -353,7 +351,6 @@
             ${p.specs.map(([k, v]) => `<tr><th scope="row">${escapeHtml(k)}</th><td>${escapeHtml(v)}</td></tr>`).join('')}
           </tbody>
         </table>
-        ${itemCountHtml('specifications', p.specs.length, p.specs.length)}
       </section>`;
   }
 
@@ -468,7 +465,6 @@
         <section class="certification-bodies" data-cy="certificationBodies">
           <h2>Certification bodies</h2>
           <ul>${items.map((c) => `<li>${escapeHtml(c.name)}</li>`).join('')}</ul>
-          ${itemCountHtml('certificationBodies', items.length, items.length)}
         </section>`;
     } catch (e) {
       // Section simply doesn't appear.

@@ -62,6 +62,7 @@ jobs:
         with:
           working-directory: tests
           spec: cypress/e2e/features/*.feature
+          browser: chrome # Chrome is preinstalled on GitHub ubuntu runners; default would be Electron
           # Only send results to Cypress Cloud when the key is available (it is not for PRs from forks)
           record: ${{ secrets.CYPRESS_RECORD_KEY != '' }}
         env:

@@ -45,6 +45,15 @@
     return `<app-breadcrumbs data-cy="breadcrumbs"><nav><ol>${items}</ol></nav></app-breadcrumbs>`;
   }
 
+  // "X of Y" line shown under every set of tiles outside the homepage.
+  // Every count has the same data-cy / data-testid, and data-count-of says which
+  // tiles it counts. data-shown / data-total hold the
+  // bare numbers so tests can compare them with an API response without
+  // parsing the text.
+  function itemCountHtml(countOf, shown, total, { live = false } = {}) {
+    return `<p class="item-count" data-cy="itemCount" data-testid="item-count" data-count-of="${countOf}" data-shown="${shown}" data-total="${total}"${live ? ' role="status"' : ''}><span class="item-count-shown" data-cy="itemCountShown">${shown}</span> of <span class="item-count-total" data-cy="itemCountTotal">${total}</span></p>`;
+  }
+
   function shuffled(list) {
     const copy = list.slice();
     for (let i = copy.length - 1; i > 0; i -= 1) {
@@ -198,18 +207,20 @@
 
     function panelFor(tab) {
       if (tab === 'manufacturers') {
-        return matchedManufacturers.length
+        const n = matchedManufacturers.length;
+        return (n
           ? `<div class="tiles">${matchedManufacturers.map(manufacturerTile).join('')}</div>`
-          : emptyState('manufacturers');
+          : emptyState('manufacturers')) + itemCountHtml('manufacturers', n, n);
       }
       if (tab === 'products') {
-        return matchedProducts.length
+        const n = matchedProducts.length;
+        return (n
           ? `<div class="tiles">${matchedProducts.map(productTile).join('')}</div>`
-          : emptyState('products');
+          : emptyState('products')) + itemCountHtml('products', n, n);
       }
       // CPD, Literature, Case studies: no search content behind these, they
       // exist so the tab bar matches the shape of the real site.
-      return emptyState(tab);
+      return emptyState(tab) + itemCountHtml(tab, 0, 0);
     }
 
     function emptyState(tab) {
@@ -281,6 +292,7 @@
               <span class="category-card-name">${escapeHtml(c.name)}</span>
             </a>`).join('')}
         </div>
+        ${itemCountHtml('categories', DATA.categories.length, DATA.categories.length)}
       </section>`;
   }
 
@@ -308,6 +320,7 @@
         ${products.length
           ? `<div class="tiles">${products.map(productTile).join('')}</div>`
           : '<p class="empty-state">No products in this category yet.</p>'}
+        ${itemCountHtml('products', products.length, products.length)}
       </section>`;
   }
 
@@ -394,7 +407,11 @@
     if (tilesResult.status !== 'fulfilled') return;
     const tilesEntry = tilesResult.value.find((e) => Array.isArray(e?.data?.[op]?.byBrandId?.paginatedResponse?.items));
     if (!tilesEntry) return;
-    const items = tilesEntry.data[op].byBrandId.paginatedResponse.items;
+    const { items, totalItems } = tilesEntry.data[op].byBrandId.paginatedResponse;
+    // In "X of Y", Y is the API's totalItems (falling back to the number of
+    // items), so it can be checked against the response. X is the tiles on screen.
+    const total = Number.isInteger(totalItems) ? totalItems : items.length;
+    const countHtml = (shown) => itemCountHtml(op, shown, total, { live: true });
 
     let filterOptions = [];
     if (filtersResult.status === 'fulfilled') {
@@ -420,13 +437,16 @@
             </select>
           </label>` : ''}
         <div class="results" data-cy="results">${resultsHtml(items)}</div>
+        ${countHtml(items.length)}
       </app-search-result-wrapper>`);
 
     const select = list.querySelector('#filter-type');
     if (select) {
       select.addEventListener('change', () => {
         const chosen = select.value;
-        list.querySelector('[data-cy="results"]').innerHTML = resultsHtml(chosen ? items.filter((i) => i.type === chosen) : items);
+        const shown = chosen ? items.filter((i) => i.type === chosen) : items;
+        list.querySelector('[data-cy="results"]').innerHTML = resultsHtml(shown);
+        list.querySelector('[data-cy="itemCount"]').outerHTML = countHtml(shown.length);
       });
     }
   }
@@ -491,6 +511,7 @@
     const current = sections.find((t) => t.key === (sectionKey || 'overview')) || sections[0];
     document.title = `${m.name} | ${current.label} | TradeSource`;
     const ownProducts = DATA.products.filter((p) => p.manufacturerSlug === m.slug);
+    const productsCount = itemCountHtml('products', ownProducts.length, ownProducts.length);
 
     const nav = `
       <nav class="manufacturer-nav" aria-label="Manufacturer navigation" data-cy="manufacturerNav">
@@ -505,10 +526,10 @@
       body = `
         <p class="manufacturer-about" data-testid="manufacturer-about">${escapeHtml(m.about)}</p>
         <div data-slot="certification-bodies"></div>
-        ${ownProducts.length ? `<h2>Products</h2><div class="tiles">${ownProducts.map(productTile).join('')}</div>` : ''}
+        ${ownProducts.length ? `<h2>Products</h2><div class="tiles">${ownProducts.map(productTile).join('')}</div>${productsCount}` : ''}
       `;
     } else if (current.key === 'products') {
-      body = `<h2>Products</h2>${ownProducts.length ? `<div class="tiles">${ownProducts.map(productTile).join('')}</div>` : '<p class="empty-state">No products listed.</p>'}`;
+      body = `<h2>Products</h2>${ownProducts.length ? `<div class="tiles">${ownProducts.map(productTile).join('')}</div>` : '<p class="empty-state">No products listed.</p>'}${productsCount}`;
     } else if (current.key === 'about') {
       body = `<h2>About us</h2><p class="manufacturer-about">${escapeHtml(m.about)}</p>`;
     } else {

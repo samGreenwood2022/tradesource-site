@@ -141,6 +141,20 @@ app-search-bar { display: block; }
 
 .empty-state { color: #666; padding: 2rem 0; }
 
+/* "X of Y" item counts under every list outside the homepage */
+.item-count {
+  display: block;
+  width: fit-content;
+  margin: 0.75rem 0 0 auto;
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  background: #e8f3ef;
+  color: #0b3d2e;
+  font-size: 0.85rem;
+}
+.item-count-shown, .item-count-total { font-weight: 600; }
+.empty-state + .item-count { margin-top: 0; }
+
 .manufacturer-page .brand-title-container h1 { margin-bottom: 0.25rem; }
 .manufacturer-about { max-width: 640px; margin-top: 1.5rem; color: #333; }
 
